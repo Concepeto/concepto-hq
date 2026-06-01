@@ -26,6 +26,7 @@ const API_KEY = process.env.ANTHROPIC_API_KEY || '';
 const DATA_FILE = path.join(__dirname, 'data', 'hq-data.json');
 const BRIEF_FILE = path.join(__dirname, 'data', 'brief-cache.json');
 const IDEAS_FILE = path.join(__dirname, 'data', 'ideas-cache.json');
+const IG_FILE = path.join(__dirname, 'data', 'instagram-cache.json');
 
 // Ensure data dir exists
 if (!fs.existsSync(path.join(__dirname, 'data'))) {
@@ -558,6 +559,14 @@ const server = http.createServer((req, res) => {
         apiReq.end();
       } catch { res.writeHead(400); res.end(); }
     });
+    return;
+  }
+
+  // ── GET /api/instagram ──
+  if (req.method === 'GET' && pathname === '/api/instagram') {
+    const ig = readJSON(IG_FILE, null);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(ig));
     return;
   }
 

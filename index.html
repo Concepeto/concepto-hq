@@ -3749,7 +3749,9 @@ async function init() {
   document.getElementById('calc-standard').style.display='none';
   renderComando();
   initCalc(); calcROI(); calcProfit();
-  // Check local server (fast)
+  // Set SERVER: proxy override or same origin (works on Vercel + localhost)
+  SERVER = D.settings?.proxy || '';
+  // Check server
   await checkServer();
   // Load from Supabase (cloud backup)
   const loaded = await loadFromSupabase();
@@ -3763,7 +3765,7 @@ document.addEventListener('DOMContentLoaded', init);
 // ══════════════════════════════════════════════════
 // NEW: SERVER + AI ENGINE
 // ══════════════════════════════════════════════════
-const SERVER = 'http://localhost:3001';
+let SERVER = '';
 let serverOnline = false;
 
 // ── AUTH TOKEN ────────────────────────────────────────

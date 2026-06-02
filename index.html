@@ -1576,6 +1576,9 @@ function load() {
   if(!D.mktStatus) D.mktStatus={};
   if(!D.mrrTarget) D.mrrTarget=2500;
   if(!D.dealTarget) D.dealTarget=2;
+  if(!D.socioHistory) D.socioHistory=[];
+  if(!D.mktHistory) D.mktHistory=[];
+  if(!D.aiHistory) D.aiHistory=[];
   checkDayReset();
 }
 let _syncTimer = null;
@@ -3189,7 +3192,7 @@ async function tryAICall(sysPrompt, userMsg) {
         }
       }
       bubble.textContent=fullText||'Sin respuesta';
-      if(fullText) chatHistory.push({role:'assistant',content:fullText});
+      if(fullText) { chatHistory.push({role:'assistant',content:fullText}); D.aiHistory=chatHistory.slice(-40); save(); }
     } catch(e) {
       bubble.remove();
       fallbackCopy(sysPrompt, userMsg);
@@ -3226,6 +3229,7 @@ function openInClaude() {
 }
 function clearChat() {
   chatHistory=[];
+  D.aiHistory=[]; save();
   const msgs=document.getElementById('ai-chat-messages');
   msgs.innerHTML='<div class="msg-system">Chat limpiado · Contexto listo</div><div class="msg-ai">Hola Bruno 👋 Chat reiniciado. Contexto de negocio cargado.</div>';
 }
@@ -3751,6 +3755,13 @@ async function init() {
   initCalc(); calcROI(); calcProfit();
   // Set SERVER: proxy override or same origin (works on Vercel + localhost)
   SERVER = D.settings?.proxy || '';
+  // Restore chat histories
+  socioHistory = D.socioHistory || [];
+  mktChatHistory = D.mktHistory || [];
+  chatHistory = D.aiHistory || [];
+  restoreChat('socio-messages', socioHistory, '<div class="msg-ai">Hola Bruno. Soy tu socio en Concepto Development.\n\nDecime qué querés lograr — no me cuentes el proceso, contame el objetivo. Yo me encargo de pensar cómo llegamos.</div>');
+  restoreChat('mkt-chat-messages', mktChatHistory, '<div class="msg-ai">Hola Bruno. Soy MAX Marketing, tu CM y estratega de contenido.\n\nPuedo generarte copy listo para usar, ideas de reels, análisis de qué funciona, estrategia para Meta Ads, o lo que necesites. ¿Por dónde arrancamos?</div>');
+  restoreChat('ai-chat-messages', chatHistory, '<div class="msg-system">Contexto cargado · Escribe tu consulta abajo</div><div class="msg-ai">Hola Bruno 👋 Soy tu asistente con contexto completo de Concepto Development. Puedo ayudarte con estrategia, propuestas, scripts para MAX, copy, análisis de clientes o cualquier tema de tu agencia.\n\nCambiá el modo arriba para un contexto más específico, o escribime directamente.</div>');
   // Check server
   await checkServer();
   // Load from Supabase (cloud backup)
@@ -3940,6 +3951,16 @@ function addTypingIndicator(containerId) {
   return div;
 }
 
+// ── CHAT RESTORE ─────────────────────────────────────
+function restoreChat(containerId, history, welcomeHtml) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  if (!history || !history.length) { el.innerHTML = welcomeHtml; return; }
+  el.innerHTML = '';
+  history.forEach(m => addMsg(containerId, m.content, m.role === 'user' ? 'user' : 'ai'));
+  el.scrollTop = el.scrollHeight;
+}
+
 // ── MAX SOCIO ────────────────────────────────────────
 let socioHistory = [];
 let socioStreaming = false;
@@ -3981,6 +4002,7 @@ async function sendSocioMessage() {
     },
     () => {
       socioHistory.push({role:'assistant', content:fullText});
+      D.socioHistory = socioHistory.slice(-40); save();
       socioStreaming = false;
     }
   );
@@ -4001,6 +4023,7 @@ function socioQuick(type) {
 
 function clearSocioChat() {
   socioHistory = [];
+  D.socioHistory = []; save();
   const el = document.getElementById('socio-messages');
   el.innerHTML = '<div class="msg-ai">Chat limpiado. ¿En qué trabajamos?</div>';
 }
@@ -4033,6 +4056,7 @@ async function sendMktMessage() {
     },
     () => {
       mktChatHistory.push({role:'assistant', content:fullText});
+      D.mktHistory = mktChatHistory.slice(-40); save();
       mktChatStreaming = false;
     }
   );
@@ -4052,6 +4076,7 @@ function mktQuick(type) {
 
 function clearMktChat() {
   mktChatHistory = [];
+  D.mktHistory = []; save();
   const el = document.getElementById('mkt-chat-messages');
   el.innerHTML = '<div class="msg-ai">Chat limpiado. ¿Arrancamos con algo nuevo?</div>';
 }

@@ -810,7 +810,56 @@ Decime qué querés lograr — no me cuentes el proceso, contame el objetivo. Yo
     <div id="page-goals" class="page">
       <div class="page-title">Objetivos</div>
       <button class="btn btn-primary btn-full" style="margin-bottom:14px" onclick="openModal('modal-goal')">+ Nuevo objetivo</button>
+      <div class="sec-label" style="margin-top:4px">🗓 Diarios</div>
+      <div id="goals-dia"></div>
+      <div class="sec-label" style="margin-top:14px">📅 Semanales</div>
+      <div id="goals-semana"></div>
+      <div class="sec-label" style="margin-top:14px">🎯 Más largo plazo</div>
       <div id="goals-list"></div>
+    </div>
+
+    <!-- ═══════════════ DETALLE CLIENTE ═══════════════ -->
+    <div id="page-clientdetail" class="page">
+      <button class="btn btn-ghost btn-sm" style="margin-bottom:12px" onclick="goToPage('clients')">← Clientes</button>
+      <div id="cd-header"></div>
+      <div class="card" style="margin:12px 0">
+        <div style="display:flex;gap:8px">
+          <input type="text" id="cd-task-input" placeholder="Nueva tarea para este cliente..." style="flex:1" onkeydown="if(event.key==='Enter')addClientTask()">
+          <select id="cd-task-priority" style="width:70px">
+            <option value="alta">🔴</option><option value="media" selected>🟡</option><option value="baja">⚪</option>
+          </select>
+        </div>
+        <button class="btn btn-primary btn-full" style="margin-top:10px" onclick="addClientTask()">+ Agregar tarea</button>
+      </div>
+      <div class="sec-label">⏳ Pendientes</div>
+      <div id="cd-tasks-pending"></div>
+      <div class="sec-label" style="margin-top:14px">✅ Terminadas</div>
+      <div id="cd-tasks-done"></div>
+    </div>
+
+    <!-- ═══════════════ PROYECTOS ═══════════════ -->
+    <div id="page-projects" class="page">
+      <div class="page-title">Proyectos</div>
+      <button class="btn btn-primary btn-full" style="margin-bottom:14px" onclick="newProject()">+ Nuevo proyecto</button>
+      <div id="projects-groups"></div>
+    </div>
+
+    <!-- ═══════════════ BÓVEDA ═══════════════ -->
+    <div id="page-vault" class="page">
+      <div class="page-title">🔒 Bóveda</div>
+      <div id="vault-locked">
+        <div class="card" style="text-align:center;padding:28px 16px">
+          <div style="font-size:40px;margin-bottom:8px">🔒</div>
+          <div id="vault-lock-msg" style="font-size:13px;color:var(--txt3);margin-bottom:16px">Ingresá tu PIN para ver tus contraseñas</div>
+          <input type="password" id="vault-pin" inputmode="numeric" placeholder="• • • •" style="text-align:center;font-size:22px;letter-spacing:8px;max-width:200px;margin:0 auto" onkeydown="if(event.key==='Enter')unlockVault()">
+          <button class="btn btn-primary btn-full" style="margin-top:14px" onclick="unlockVault()">Desbloquear</button>
+        </div>
+      </div>
+      <div id="vault-unlocked" style="display:none">
+        <button class="btn btn-primary btn-full" style="margin-bottom:8px" onclick="newVaultItem()">+ Nueva contraseña</button>
+        <button class="btn btn-ghost btn-full btn-sm" style="margin-bottom:14px" onclick="lockVault()">🔒 Bloquear bóveda</button>
+        <div id="vault-list"></div>
+      </div>
     </div>
 
     <!-- ═══════════════ NOTAS ═══════════════ -->
@@ -1244,17 +1293,17 @@ Puedo generarte copy listo para usar, ideas de reels, análisis de qué funciona
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
       Comando
     </button>
-    <button class="nav-btn" id="nav-socio" onclick="setPage('socio')">
+    <button class="nav-btn" id="nav-clients" onclick="setPage('clients')">
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
-      Socio
+      Clientes
     </button>
-    <button class="nav-btn" id="nav-marketing" onclick="setPage('marketing')">
+    <button class="nav-btn" id="nav-projects" onclick="setPage('projects')">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>
+      Proyectos
+    </button>
+    <button class="nav-btn" id="nav-ventas" onclick="setPage('pipeline')">
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99z"/></svg>
-      Marketing
-    </button>
-    <button class="nav-btn" id="nav-ideas" onclick="setPage('ideas')">
-      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7z"/></svg>
-      Ideas
+      Ventas
     </button>
     <button class="nav-btn" id="nav-more" onclick="openMoreMenu()">
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm12 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-6 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
@@ -1292,26 +1341,16 @@ Puedo generarte copy listo para usar, ideas de reels, análisis de qué funciona
   <div id="more-menu" class="modal-overlay" onclick="closeMoreMenu()">
     <div class="modal-sheet" onclick="event.stopPropagation()">
       <div class="modal-handle"></div>
-      <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--txt3);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Analytics</div>
+      <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--txt3);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Mi día</div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">
-        <button class="qa-btn" style="background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(168,85,247,.08));border:1px solid rgba(124,58,237,.3);border-radius:12px;padding:12px 8px" onclick="goToPage('instagram')"><div class="qa-icon">📸</div><div class="qa-label" style="color:var(--vlt2)">Instagram</div></button>
-      </div>
-      <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--txt3);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Negocio</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">
-        <button class="qa-btn" style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px 8px" onclick="goToPage('pipeline')"><div class="qa-icon">🎯</div><div class="qa-label">Pipeline</div></button>
-        <button class="qa-btn" style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px 8px" onclick="goToPage('clients')"><div class="qa-icon">👥</div><div class="qa-label">Clientes</div></button>
-        <button class="qa-btn" style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px 8px" onclick="goToPage('finance')"><div class="qa-icon">💰</div><div class="qa-label">Finanzas</div></button>
-        <button class="qa-btn" style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px 8px" onclick="goToPage('propuestas')"><div class="qa-icon">📄</div><div class="qa-label">Propuestas</div></button>
-        <button class="qa-btn" style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px 8px" onclick="goToPage('goals')"><div class="qa-icon">🏆</div><div class="qa-label">Objetivos</div></button>
-        <button class="qa-btn" style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px 8px" onclick="goToPage('ai')"><div class="qa-icon">🤖</div><div class="qa-label">MAX General</div></button>
-      </div>
-      <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--txt3);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Trabajo</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">
+        <button class="qa-btn" style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px 8px" onclick="goToPage('goals')"><div class="qa-icon">🎯</div><div class="qa-label">Objetivos</div></button>
         <button class="qa-btn" style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px 8px" onclick="goToPage('tasks')"><div class="qa-icon">✅</div><div class="qa-label">Tareas</div></button>
-        <button class="qa-btn" style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px 8px" onclick="goToPage('focus')"><div class="qa-icon">⏱</div><div class="qa-label">Focus</div></button>
-        <button class="qa-btn" style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px 8px" onclick="goToPage('timer')"><div class="qa-icon">🕐</div><div class="qa-label">Timer</div></button>
-        <button class="qa-btn" style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px 8px" onclick="goToPage('contenido')"><div class="qa-icon">🎬</div><div class="qa-label">Contenido</div></button>
-        <button class="qa-btn" style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px 8px" onclick="goToPage('notes')"><div class="qa-icon">📓</div><div class="qa-label">Diario</div></button>
+        <button class="qa-btn" style="background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(168,85,247,.08));border:1px solid rgba(124,58,237,.3);border-radius:12px;padding:12px 8px" onclick="goToPage('vault')"><div class="qa-icon">🔒</div><div class="qa-label" style="color:var(--vlt2)">Bóveda</div></button>
+      </div>
+      <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--txt3);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Ventas</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">
+        <button class="qa-btn" style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px 8px" onclick="goToPage('propuestas')"><div class="qa-icon">📄</div><div class="qa-label">Propuestas</div></button>
+        <button class="qa-btn" style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px 8px" onclick="goToPage('ai')"><div class="qa-icon">🤖</div><div class="qa-label">MAX</div></button>
         <button class="qa-btn" style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px 8px" onclick="goToPage('settings')"><div class="qa-icon">⚙️</div><div class="qa-label">Config</div></button>
       </div>
     </div>
@@ -1343,6 +1382,55 @@ Puedo generarte copy listo para usar, ideas de reels, análisis de qué funciona
       <div style="display:flex;gap:8px;margin-top:4px">
         <button class="btn btn-ghost" style="flex:1" onclick="closeModal('modal-client')">Cancelar</button>
         <button class="btn btn-primary" style="flex:2" onclick="saveClient()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: PROYECTO -->
+  <div id="modal-project" class="modal-overlay">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-title" id="modal-project-title">Nuevo proyecto</div>
+      <input type="hidden" id="pr-edit-id">
+      <div class="field"><label>Nombre del proyecto *</label><input type="text" id="pr-name" placeholder="ej: App Barraca Uno Star"></div>
+      <div class="field"><label>Cliente / Para quién</label><input type="text" id="pr-client" placeholder="ej: Barraca Uno (o propio)"></div>
+      <div class="grid2" style="gap:8px">
+        <div class="field" style="margin:0"><label>Estado</label>
+          <select id="pr-status">
+            <option value="pendiente">⚪ Pendiente</option>
+            <option value="proceso">🟡 En proceso</option>
+            <option value="avanzado">🔵 Avanzado</option>
+            <option value="terminado">🟢 Terminado</option>
+          </select>
+        </div>
+        <div class="field" style="margin:0;display:flex;flex-direction:column;justify-content:flex-end"><label>&nbsp;</label><label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--txt2)"><input type="checkbox" id="pr-delivered" style="width:auto"> Entregado al cliente</label></div>
+      </div>
+      <div class="field"><label>🔗 Link a la app (URL en vivo)</label><input type="url" id="pr-url" placeholder="https://..."></div>
+      <div class="field"><label>🌐 Dónde vive</label><input type="text" id="pr-host" placeholder="ej: Vercel (cuenta 1brunosilva) vía GitHub"></div>
+      <div class="field"><label>🔑 Cuentas usadas</label><input type="text" id="pr-accounts" placeholder="ej: GitHub 1brunosilva · Vercel bruno@mail.com · Supabase ..."></div>
+      <div class="field"><label>🛠 Herramientas / stack</label><input type="text" id="pr-tools" placeholder="ej: Next.js, Supabase, Tailwind, n8n"></div>
+      <div class="field"><label>Notas</label><textarea id="pr-notes" style="min-height:60px" placeholder="Estado, pendientes, lo que prometiste..."></textarea></div>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button class="btn btn-ghost" style="flex:1" onclick="closeModal('modal-project')">Cancelar</button>
+        <button class="btn btn-primary" style="flex:2" onclick="saveProject()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: BÓVEDA -->
+  <div id="modal-vault" class="modal-overlay">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-title" id="modal-vault-title">Nueva contraseña</div>
+      <input type="hidden" id="vk-edit-id">
+      <div class="field"><label>App / Servicio *</label><input type="text" id="vk-app" placeholder="ej: Vercel, GitHub, Supabase"></div>
+      <div class="field"><label>Usuario / Email</label><input type="text" id="vk-user" autocomplete="off"></div>
+      <div class="field"><label>Contraseña</label><input type="text" id="vk-pass" autocomplete="off"></div>
+      <div class="field"><label>URL (opcional)</label><input type="text" id="vk-url" placeholder="https://..."></div>
+      <div class="field"><label>Notas (opcional)</label><textarea id="vk-notes" style="min-height:50px" placeholder="ej: cuenta principal, 2FA en el teléfono..."></textarea></div>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button class="btn btn-ghost" style="flex:1" onclick="closeModal('modal-vault')">Cancelar</button>
+        <button class="btn btn-primary" style="flex:2" onclick="saveVaultItem()">Guardar</button>
       </div>
     </div>
   </div>
@@ -1433,6 +1521,7 @@ Puedo generarte copy listo para usar, ideas de reels, análisis de qué funciona
       <div class="field"><label>Objetivo *</label><input type="text" id="goal-text" placeholder="ej: Conseguir 2 clientes nuevos"></div>
       <div class="field"><label>Tipo</label>
         <select id="goal-type">
+          <option value="diario">Diario</option>
           <option value="semanal">Semanal</option>
           <option value="mensual">Mensual</option>
           <option value="trimestral">Trimestral</option>
@@ -1548,6 +1637,7 @@ let D = {
   resources:[], ideas:[], goals:[],
   proposals:[], contentItems:[], quickPrompts:[],
   energy:[], focus:{sessions:[]},
+  projects:[], vault:{check:null, items:[]},
   settings:{proxy:'',userName:'Bruno'}
 };
 
@@ -1573,6 +1663,8 @@ function load() {
   if(!D.energy) D.energy=[];
   if(!D.focus) D.focus={sessions:[]};
   if(!D.settings) D.settings={proxy:'',userName:'Bruno'};
+  if(!D.projects) D.projects=[];
+  if(!D.vault) D.vault={check:null, items:[]};
   if(!D.mktStatus) D.mktStatus={};
   if(!D.mrrTarget) D.mrrTarget=2500;
   if(!D.dealTarget) D.dealTarget=2;
@@ -1633,6 +1725,7 @@ async function loadFromSupabase() {
   return false;
 }
 function uid() { return Math.random().toString(36).slice(2,9); }
+function esc(s){ return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function todayStr() { return new Date().toISOString().split('T')[0]; }
 function fmtDate(d) {
   if(!d) return '';
@@ -1659,14 +1752,17 @@ function notify(msg, duration=2500) {
 
 // ── NAVIGATION ─────────────────────────────────────
 const PAGES = ['comando','ai','socio','pipeline','clients','tasks','focus','timer','finance',
-               'contenido','propuestas','recursos','ideas','goals','notes','calc','settings','marketing','instagram'];
+               'contenido','propuestas','recursos','ideas','goals','notes','calc','settings','marketing','instagram',
+               'projects','vault','clientdetail'];
 const NAV_MAP = {
-  comando:'nav-comando', ai:'nav-more', socio:'nav-socio',
-  marketing:'nav-marketing', ideas:'nav-ideas',
-  pipeline:'nav-more', clients:'nav-more', finance:'nav-more', propuestas:'nav-more',
-  tasks:'nav-more', focus:'nav-more', timer:'nav-more', goals:'nav-more',
+  comando:'nav-comando',
+  clients:'nav-clients', clientdetail:'nav-clients',
+  projects:'nav-projects',
+  pipeline:'nav-ventas', propuestas:'nav-ventas',
+  ai:'nav-more', socio:'nav-more', marketing:'nav-more', ideas:'nav-more',
+  finance:'nav-more', tasks:'nav-more', focus:'nav-more', timer:'nav-more', goals:'nav-more',
   contenido:'nav-more', recursos:'nav-more', notes:'nav-more', calc:'nav-more', settings:'nav-more',
-  instagram:'nav-more'
+  instagram:'nav-more', vault:'nav-more'
 };
 
 function setPage(p) {
@@ -1705,6 +1801,9 @@ function renderPage(p) {
   else if(p==='settings') loadSettings();
   else if(p==='marketing') renderMarketing();
   else if(p==='instagram') loadInstagramPage();
+  else if(p==='projects') renderProjects();
+  else if(p==='vault') renderVault();
+  else if(p==='clientdetail') renderClientDetail();
 }
 function toggleNegocio() {
   const m=document.getElementById('negocio-menu');
@@ -2115,7 +2214,7 @@ function renderClients() {
   if(!clients.length) { el.innerHTML='<div class="empty"><div class="empty-icon">👥</div>Sin clientes todavía</div>'; return; }
   const statusColor={activo:'var(--green)',pendiente:'var(--red)',pausado:'var(--orange)',inactivo:'var(--txt3)'};
   el.innerHTML=clients.map(c=>`
-    <div class="card" style="cursor:pointer;margin-bottom:10px" onclick="fillClient('${c.id}');openModal('modal-client')">
+    <div class="card" style="cursor:pointer;margin-bottom:10px" onclick="openClientDetail('${c.id}')">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
         <div>
           <div style="font-size:16px;font-weight:800">${c.name}</div>
@@ -2450,11 +2549,34 @@ function saveGoal() {
   D.goals.push(obj); save(); closeModal('modal-goal'); renderGoals();
   document.getElementById('goal-text').value='';
 }
+function goalCard(g){
+  const pct=Math.min(100,Math.round((g.current/g.target)*100));
+  return `<div class="card" style="margin-bottom:10px;${g.done?'opacity:.5':''}">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+      <div style="flex:1"><div style="font-size:15px;font-weight:700;text-decoration:${g.done?'line-through':''}">${esc(g.text)}</div>
+        <span class="tag tag-gray" style="margin-top:4px">${g.type}</span></div>
+      <div style="text-align:right"><div style="font-size:14px;font-weight:800;color:var(--vlt2)">${pct}%</div>
+        <div style="font-size:11px;color:var(--txt3)">${g.current}/${g.target}</div></div>
+    </div>
+    <div class="progress-wrap"><div class="progress-fill" style="width:${pct}%"></div></div>
+    <div style="display:flex;gap:6px;margin-top:10px">
+      <input type="number" value="${g.current}" min="0" max="${g.target}" style="width:80px" onchange="updateGoalProgress('${g.id}',this.value)">
+      <button class="btn btn-ghost btn-sm" onclick="toggleGoalDone('${g.id}')">${g.done?'↩ Reabrir':'✅ Completar'}</button>
+      <button class="btn btn-ghost btn-sm" onclick="deleteGoal('${g.id}')">🗑</button>
+    </div></div>`;
+}
 function renderGoals() {
+  const dia=D.goals.filter(g=>g.type==='diario');
+  const sem=D.goals.filter(g=>g.type==='semanal');
+  const rest=D.goals.filter(g=>g.type!=='diario'&&g.type!=='semanal');
+  const diaEl=document.getElementById('goals-dia');
+  const semEl=document.getElementById('goals-semana');
+  if(diaEl) diaEl.innerHTML = dia.length? dia.map(goalCard).join('') : '<div style="font-size:12px;color:var(--txt3);padding:4px">Sin objetivos diarios</div>';
+  if(semEl) semEl.innerHTML = sem.length? sem.map(goalCard).join('') : '<div style="font-size:12px;color:var(--txt3);padding:4px">Sin objetivos semanales</div>';
   const el=document.getElementById('goals-list');
-  if(!D.goals.length) { el.innerHTML='<div class="empty"><div class="empty-icon">🎯</div>Sin objetivos definidos</div>'; return; }
-  const typeOrder={semanal:0,mensual:1,trimestral:2,anual:3};
-  const goals=[...D.goals].sort((a,b)=>(typeOrder[a.type]||0)-(typeOrder[b.type]||0));
+  if(!rest.length) { el.innerHTML='<div style="font-size:12px;color:var(--txt3);padding:4px">Sin objetivos de largo plazo</div>'; return; }
+  const typeOrder={mensual:1,trimestral:2,anual:3};
+  const goals=[...rest].sort((a,b)=>(typeOrder[a.type]||0)-(typeOrder[b.type]||0));
   el.innerHTML=goals.map(g=>{
     const pct=Math.min(100,Math.round((g.current/g.target)*100));
     return `<div class="card" style="margin-bottom:10px;${g.done?'opacity:.5':''}">
@@ -2486,6 +2608,222 @@ function toggleGoalDone(id) {
   if(g) { g.done=!g.done; save(); renderGoals(); }
 }
 function deleteGoal(id) { D.goals=D.goals.filter(g=>g.id!==id); save(); renderGoals(); }
+
+// ── DETALLE DE CLIENTE (con sus tareas) ───────────
+let currentClientId = null;
+function openClientDetail(id) {
+  currentClientId = id;
+  goToPage('clientdetail');
+}
+function renderClientDetail() {
+  const c = D.clients.find(x=>x.id===currentClientId);
+  const head = document.getElementById('cd-header');
+  if(!c) { head.innerHTML='<div class="empty">Cliente no encontrado</div>'; return; }
+  const statusColor={activo:'var(--green)',pendiente:'var(--red)',pausado:'var(--orange)',inactivo:'var(--txt3)'};
+  head.innerHTML=`<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div><div style="font-size:20px;font-weight:800">${esc(c.name)}</div>
+      ${c.project?`<div style="font-size:12px;color:var(--txt3)">${esc(c.project)}</div>`:''}
+      ${c.sector?`<div style="font-size:12px;color:var(--txt3);margin-top:4px">🏢 ${esc(c.sector)}</div>`:''}
+      ${c.contact?`<div style="font-size:12px;color:var(--txt3);margin-top:2px">📞 ${esc(c.contact)}</div>`:''}</div>
+      <div style="text-align:right">
+        <div style="font-weight:800;font-size:16px;color:var(--green)">$${Number(c.fee||0).toLocaleString()}</div>
+        <span style="font-size:11px;font-family:'DM Mono',monospace;color:${statusColor[c.status]||'var(--txt3)'}">${esc(c.status||'')}</span>
+      </div>
+    </div>
+    <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+      <button class="btn btn-ghost btn-sm" onclick="fillClient('${c.id}');openModal('modal-client')">✏️ Editar</button>
+      <button class="btn btn-ghost btn-sm" onclick="aiForClient('${c.id}')">🤖 AI</button>
+    </div></div>`;
+  const tasks=D.tasks.filter(t=>t.clientId===c.id);
+  const pending=tasks.filter(t=>!t.done);
+  const done=tasks.filter(t=>t.done).sort((a,b)=>(b.doneAt||'').localeCompare(a.doneAt||''));
+  const pEl=document.getElementById('cd-tasks-pending');
+  const dEl=document.getElementById('cd-tasks-done');
+  const prioDot={alta:'🔴',media:'🟡',baja:'⚪'};
+  const row=(t,isDone)=>`<div class="card" style="margin-bottom:8px;display:flex;align-items:center;gap:10px;${isDone?'opacity:.6':''}">
+    <button onclick="toggleClientTask('${t.id}')" style="width:24px;height:24px;border-radius:7px;border:2px solid ${isDone?'var(--green)':'var(--border)'};background:${isDone?'var(--green)':'transparent'};color:#fff;cursor:pointer;flex-shrink:0;font-size:13px">${isDone?'✓':''}</button>
+    <div style="flex:1;font-size:14px;${isDone?'text-decoration:line-through;color:var(--txt3)':''}">${prioDot[t.priority]||''} ${esc(t.text)}</div>
+    <button class="btn btn-ghost btn-sm" onclick="deleteTask('${t.id}');renderClientDetail()">🗑</button>
+  </div>`;
+  pEl.innerHTML = pending.length ? pending.map(t=>row(t,false)).join('') : '<div class="empty" style="padding:16px">Nada pendiente 🎉</div>';
+  dEl.innerHTML = done.length ? done.map(t=>row(t,true)).join('') : '<div style="font-size:12px;color:var(--txt3);padding:4px">Todavía nada terminado</div>';
+}
+function addClientTask() {
+  const input=document.getElementById('cd-task-input');
+  const text=input.value.trim(); if(!text) return;
+  D.tasks.push({id:uid(),text,priority:document.getElementById('cd-task-priority').value,
+    due:'',clientId:currentClientId,done:false,createdAt:todayStr()});
+  input.value='';
+  save(); renderClientDetail();
+}
+function toggleClientTask(id) {
+  const t=D.tasks.find(x=>x.id===id);
+  if(t){ t.done=!t.done; t.doneAt=t.done?new Date().toISOString():null; save(); renderClientDetail(); }
+}
+
+// ── PROYECTOS ─────────────────────────────────────
+const PROJ_STATUS={pendiente:{label:'⚪ Pendiente',color:'var(--txt3)'},proceso:{label:'🟡 En proceso',color:'var(--orange)'},avanzado:{label:'🔵 Avanzado',color:'var(--vlt2)'},terminado:{label:'🟢 Terminado',color:'var(--green)'}};
+const PROJ_ORDER=['proceso','avanzado','pendiente','terminado'];
+function renderProjects() {
+  const el=document.getElementById('projects-groups');
+  if(!D.projects.length){ el.innerHTML='<div class="empty"><div class="empty-icon">📁</div>Sin proyectos todavía</div>'; return; }
+  let html='';
+  PROJ_ORDER.forEach(st=>{
+    const list=D.projects.filter(p=>(p.status||'pendiente')===st);
+    if(!list.length) return;
+    html+=`<div class="sec-label" style="margin-top:14px;color:${PROJ_STATUS[st].color}">${PROJ_STATUS[st].label} · ${list.length}</div>`;
+    html+=list.map(p=>{
+      const delivered=p.delivered;
+      return `<div class="card" style="margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+          <div style="flex:1"><div style="font-size:16px;font-weight:800">${esc(p.name)}</div>
+          ${p.client?`<div style="font-size:12px;color:var(--txt3)">👤 ${esc(p.client)}</div>`:''}</div>
+          <span class="tag ${delivered?'tag-green':'tag-gray'}" style="white-space:nowrap">${delivered?'✓ Entregado':'No entregado'}</span>
+        </div>
+        ${p.url?`<a href="${esc(p.url)}" target="_blank" rel="noopener" class="btn btn-primary btn-full btn-sm" style="margin-top:10px;text-decoration:none;display:block;text-align:center">🔗 Abrir app</a>`:''}
+        ${p.host?`<div style="font-size:12px;color:var(--txt2);margin-top:8px">🌐 <b>Vive en:</b> ${esc(p.host)}</div>`:''}
+        ${p.accounts?`<div style="font-size:12px;color:var(--txt2);margin-top:4px">🔑 <b>Cuentas:</b> ${esc(p.accounts)}</div>`:''}
+        ${p.tools?`<div style="font-size:12px;color:var(--txt2);margin-top:4px">🛠 <b>Herramientas:</b> ${esc(p.tools)}</div>`:''}
+        ${p.notes?`<div style="font-size:12px;color:var(--txt3);margin-top:6px;white-space:pre-wrap">${esc(p.notes)}</div>`:''}
+        <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm" onclick="editProject('${p.id}')">✏️ Editar</button>
+          <button class="btn btn-ghost btn-sm" onclick="deleteProject('${p.id}')">🗑</button>
+        </div>
+      </div>`;
+    }).join('');
+  });
+  el.innerHTML=html;
+}
+function newProject(){ document.getElementById('pr-edit-id').value=''; document.getElementById('modal-project-title').textContent='Nuevo proyecto'; ['pr-name','pr-client','pr-url','pr-host','pr-accounts','pr-tools','pr-notes'].forEach(id=>document.getElementById(id).value=''); document.getElementById('pr-status').value='proceso'; document.getElementById('pr-delivered').checked=false; openModal('modal-project'); }
+function editProject(id){
+  const p=D.projects.find(x=>x.id===id); if(!p) return;
+  document.getElementById('pr-edit-id').value=id;
+  document.getElementById('modal-project-title').textContent='Editar proyecto';
+  document.getElementById('pr-name').value=p.name||'';
+  document.getElementById('pr-client').value=p.client||'';
+  document.getElementById('pr-url').value=p.url||'';
+  document.getElementById('pr-host').value=p.host||'';
+  document.getElementById('pr-accounts').value=p.accounts||'';
+  document.getElementById('pr-tools').value=p.tools||'';
+  document.getElementById('pr-notes').value=p.notes||'';
+  document.getElementById('pr-status').value=p.status||'proceso';
+  document.getElementById('pr-delivered').checked=!!p.delivered;
+  openModal('modal-project');
+}
+function saveProject(){
+  const id=document.getElementById('pr-edit-id').value||uid();
+  const obj={id,name:document.getElementById('pr-name').value.trim(),
+    client:document.getElementById('pr-client').value.trim(),
+    url:document.getElementById('pr-url').value.trim(),
+    host:document.getElementById('pr-host').value.trim(),
+    accounts:document.getElementById('pr-accounts').value.trim(),
+    tools:document.getElementById('pr-tools').value.trim(),
+    notes:document.getElementById('pr-notes').value.trim(),
+    status:document.getElementById('pr-status').value,
+    delivered:document.getElementById('pr-delivered').checked};
+  if(!obj.name) return notify('El nombre es obligatorio');
+  const idx=D.projects.findIndex(p=>p.id===id);
+  if(idx>=0) D.projects[idx]=obj; else D.projects.push(obj);
+  save(); closeModal('modal-project'); renderProjects(); notify('✅ Proyecto guardado');
+}
+function deleteProject(id){ if(!confirm('¿Eliminar este proyecto?')) return; D.projects=D.projects.filter(p=>p.id!==id); save(); renderProjects(); }
+
+// ── BÓVEDA (PIN + encriptado AES-GCM en reposo) ───
+let vaultKey = null; // CryptoKey en memoria mientras está desbloqueada
+async function deriveKey(pin){
+  const enc=new TextEncoder();
+  const base=await crypto.subtle.importKey('raw',enc.encode(pin),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',salt:enc.encode('concepto-hq-vault'),iterations:120000,hash:'SHA-256'},
+    base,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+}
+async function encStr(key,txt){
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,new TextEncoder().encode(txt));
+  return btoa(String.fromCharCode(...iv))+':'+btoa(String.fromCharCode(...new Uint8Array(ct)));
+}
+async function decStr(key,blob){
+  const [ivb,ctb]=blob.split(':');
+  const iv=Uint8Array.from(atob(ivb),c=>c.charCodeAt(0));
+  const ct=Uint8Array.from(atob(ctb),c=>c.charCodeAt(0));
+  const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv},key,ct);
+  return new TextDecoder().decode(pt);
+}
+async function unlockVault(){
+  const pin=document.getElementById('vault-pin').value.trim();
+  if(pin.length<4) return notify('El PIN debe tener al menos 4 dígitos');
+  const key=await deriveKey(pin);
+  if(!D.vault.check){
+    // primera vez: este PIN queda como el de la bóveda
+    D.vault.check=await encStr(key,'concepto-ok');
+    save();
+  } else {
+    try{ const v=await decStr(key,D.vault.check); if(v!=='concepto-ok') throw 0; }
+    catch{ document.getElementById('vault-lock-msg').textContent='PIN incorrecto, probá de nuevo'; document.getElementById('vault-pin').value=''; return; }
+  }
+  vaultKey=key;
+  document.getElementById('vault-pin').value='';
+  document.getElementById('vault-locked').style.display='none';
+  document.getElementById('vault-unlocked').style.display='block';
+  renderVaultItems();
+}
+function lockVault(){
+  vaultKey=null;
+  document.getElementById('vault-unlocked').style.display='none';
+  document.getElementById('vault-locked').style.display='block';
+  document.getElementById('vault-lock-msg').textContent='Ingresá tu PIN para ver tus contraseñas';
+}
+function renderVault(){
+  // al entrar a la página siempre arranca bloqueada
+  if(vaultKey){ document.getElementById('vault-locked').style.display='none'; document.getElementById('vault-unlocked').style.display='block'; renderVaultItems(); }
+  else lockVault();
+  document.getElementById('vault-lock-msg').textContent = D.vault.check ? 'Ingresá tu PIN para ver tus contraseñas' : 'Creá un PIN nuevo para tu bóveda (mínimo 4 dígitos)';
+}
+async function renderVaultItems(){
+  const el=document.getElementById('vault-list');
+  if(!D.vault.items.length){ el.innerHTML='<div class="empty"><div class="empty-icon">🔑</div>Sin contraseñas guardadas</div>'; return; }
+  const rows=await Promise.all(D.vault.items.map(async it=>{
+    let pass='••••••'; try{ pass=await decStr(vaultKey,it.enc); }catch{ pass='(error al desencriptar)'; }
+    const pid='vp-'+it.id;
+    return `<div class="card" style="margin-bottom:10px">
+      <div style="font-size:15px;font-weight:800">${esc(it.app)}</div>
+      ${it.user?`<div style="font-size:13px;color:var(--txt2);margin-top:4px">👤 ${esc(it.user)} <button class="btn btn-ghost btn-sm" onclick="copyText('${esc(it.user).replace(/'/g,"\\'")}')">copiar</button></div>`:''}
+      <div style="font-size:13px;color:var(--txt2);margin-top:4px;display:flex;align-items:center;gap:6px">🔑 <span id="${pid}" style="font-family:'DM Mono',monospace;filter:blur(5px);transition:filter .15s">${esc(pass)}</span>
+        <button class="btn btn-ghost btn-sm" onclick="(function(e){var s=document.getElementById('${pid}');s.style.filter=s.style.filter?'':'blur(5px)';})()">👁</button>
+        <button class="btn btn-ghost btn-sm" onclick="copyText('${esc(pass).replace(/'/g,"\\'")}')">copiar</button></div>
+      ${it.url?`<div style="font-size:12px;color:var(--txt3);margin-top:4px">🔗 ${esc(it.url)}</div>`:''}
+      ${it.notes?`<div style="font-size:12px;color:var(--txt3);margin-top:4px">${esc(it.notes)}</div>`:''}
+      <div style="display:flex;gap:6px;margin-top:8px"><button class="btn btn-ghost btn-sm" onclick="editVaultItem('${it.id}')">✏️</button><button class="btn btn-ghost btn-sm" onclick="deleteVaultItem('${it.id}')">🗑</button></div>
+    </div>`;
+  }));
+  el.innerHTML=rows.join('');
+}
+function copyText(t){ navigator.clipboard.writeText(t).then(()=>notify('📋 Copiado')); }
+function newVaultItem(){ if(!vaultKey) return notify('Desbloqueá la bóveda primero'); document.getElementById('vk-edit-id').value=''; ['vk-app','vk-user','vk-pass','vk-url','vk-notes'].forEach(id=>document.getElementById(id).value=''); document.getElementById('modal-vault-title').textContent='Nueva contraseña'; openModal('modal-vault'); }
+async function editVaultItem(id){
+  const it=D.vault.items.find(x=>x.id===id); if(!it||!vaultKey) return;
+  document.getElementById('vk-edit-id').value=id;
+  document.getElementById('vk-app').value=it.app||'';
+  document.getElementById('vk-user').value=it.user||'';
+  try{ document.getElementById('vk-pass').value=await decStr(vaultKey,it.enc); }catch{ document.getElementById('vk-pass').value=''; }
+  document.getElementById('vk-url').value=it.url||'';
+  document.getElementById('vk-notes').value=it.notes||'';
+  document.getElementById('modal-vault-title').textContent='Editar contraseña';
+  openModal('modal-vault');
+}
+async function saveVaultItem(){
+  if(!vaultKey) return notify('Desbloqueá la bóveda primero');
+  const app=document.getElementById('vk-app').value.trim();
+  if(!app) return notify('El nombre de la app es obligatorio');
+  const id=document.getElementById('vk-edit-id').value||uid();
+  const enc=await encStr(vaultKey,document.getElementById('vk-pass').value);
+  const obj={id,app,user:document.getElementById('vk-user').value.trim(),enc,
+    url:document.getElementById('vk-url').value.trim(),notes:document.getElementById('vk-notes').value.trim()};
+  const idx=D.vault.items.findIndex(x=>x.id===id);
+  if(idx>=0) D.vault.items[idx]=obj; else D.vault.items.push(obj);
+  save(); closeModal('modal-vault'); renderVaultItems(); notify('✅ Guardado');
+}
+function deleteVaultItem(id){ if(!confirm('¿Eliminar esta contraseña?')) return; D.vault.items=D.vault.items.filter(x=>x.id!==id); save(); renderVaultItems(); }
 
 // ── TIMER ─────────────────────────────────────────
 function timerToggle() {

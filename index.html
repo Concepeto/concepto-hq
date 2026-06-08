@@ -845,6 +845,24 @@ Decime qué querés lograr — no me cuentes el proceso, contame el objetivo. Yo
       <div id="projects-groups"></div>
     </div>
 
+    <!-- ═══════════════ INFRAESTRUCTURA ═══════════════ -->
+    <div id="page-infra" class="page">
+      <div class="page-title">🗺️ Infraestructura</div>
+      <div style="font-size:13px;color:var(--txt3);margin-bottom:12px">Cada proyecto: dónde vive y botón para entrar.</div>
+      <div id="infra-list"></div>
+      <div class="sec-label" style="margin-top:18px">🔑 Cuentas (dónde está cada cosa)</div>
+      <div class="card" style="font-size:12px;color:var(--txt2);line-height:1.8">
+        <div><b style="color:var(--vlt2)">GitHub empresa:</b> org Concepeto · conceptodevelopment@gmail.com</div>
+        <div><b style="color:var(--vlt2)">GitHub personal:</b> 1brunosilva</div>
+        <div><b style="color:var(--vlt2)">Vercel empresa:</b> equipo concepto-development · conceptodevelopment@gmail.com</div>
+        <div><b style="color:var(--vlt2)">Vercel personal:</b> bruneesilva@gmail.com</div>
+        <div><b style="color:var(--vlt2)">Cloudflare:</b> conceptodevelopment@gmail.com</div>
+        <div><b style="color:var(--vlt2)">Supabase:</b> bruneesilva@ · brunoboingasilva@ · conceptodevelopment@</div>
+        <div><b style="color:var(--vlt2)">Hosting/correo:</b> tierxhosting (correo @conceptodevelopment.com)</div>
+      </div>
+      <div style="font-size:11px;color:var(--txt3);margin-top:10px">🔒 Las contraseñas se guardan en la Bóveda.</div>
+    </div>
+
     <!-- ═══════════════ BÓVEDA ═══════════════ -->
     <div id="page-vault" class="page">
       <div class="page-title">🔒 Bóveda</div>
@@ -1354,6 +1372,12 @@ Puedo generarte copy listo para usar, ideas de reels, análisis de qué funciona
         <button class="qa-btn" style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px 8px" onclick="goToPage('ai')"><div class="qa-icon">🤖</div><div class="qa-label">MAX</div></button>
         <button class="qa-btn" style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px 8px" onclick="goToPage('settings')"><div class="qa-icon">⚙️</div><div class="qa-label">Config</div></button>
       </div>
+      <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--txt3);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Sistema</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:4px">
+        <button class="qa-btn" style="background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(168,85,247,.08));border:1px solid rgba(124,58,237,.3);border-radius:12px;padding:12px 8px" onclick="goToPage('infra')"><div class="qa-icon">🗺️</div><div class="qa-label" style="color:var(--vlt2)">Infraestructura</div></button>
+        <button class="qa-btn" style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px 8px" onclick="goToPage('projects')"><div class="qa-icon">📁</div><div class="qa-label">Proyectos</div></button>
+        <button class="qa-btn" style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px 8px" onclick="goToPage('vault')"><div class="qa-icon">🔒</div><div class="qa-label">Bóveda</div></button>
+      </div>
     </div>
   </div>
 
@@ -1754,7 +1778,7 @@ function notify(msg, duration=2500) {
 // ── NAVIGATION ─────────────────────────────────────
 const PAGES = ['comando','ai','socio','pipeline','clients','tasks','focus','timer','finance',
                'contenido','propuestas','recursos','ideas','goals','notes','calc','settings','marketing','instagram',
-               'projects','vault','clientdetail'];
+               'projects','vault','clientdetail','infra'];
 const NAV_MAP = {
   comando:'nav-comando',
   clients:'nav-clients', clientdetail:'nav-clients',
@@ -1783,6 +1807,77 @@ function goToPage(p) {
   closeAllMenus();
   setPage(p);
 }
+
+// ═══════════════ INFRAESTRUCTURA — inventario real (2026-06-08) ═══════════════
+const INFRA = [
+  {n:'conceptodevelopment.com', t:'Sitio web de la empresa', st:'prod', url:'https://conceptodevelopment.com',
+   gh:'1brunosilva/Concepto-Robot', vc:'Vercel personal (bruneesilva)', host:'DNS: Cloudflare',
+   rm:'Migrar a empresa (se dejó intacto por seguridad — hacerlo en un momento dedicado).'},
+  {n:'Concepto HQ', t:'App interna (esta app)', st:'prod', url:'https://concepto-hq.vercel.app',
+   gh:'Concepeto/concepto-hq', vc:'Vercel empresa', db:'concepto-hq (zngbeqbv…)',
+   rm:'Crear staging · mover su DB a org de empresa.'},
+  {n:'Escuela Naval', t:'PWA en producción', st:'prod', url:'https://escuela-naval.conceptodevelopment.workers.dev',
+   gh:'Concepeto/escuela-naval', host:'Cloudflare Worker', db:'escuela naval (ulwcjnzn…)',
+   rm:'Ejecutar los 8 índices pendientes (INDEXES-PENDIENTES.sql).'},
+  {n:'Barraca Uno HQ', t:'Sitio estático (en producción)', st:'prod', url:'https://barraca-uno-hq.vercel.app',
+   gh:'Concepeto/barraca-uno-hq', vc:'Vercel empresa',
+   rm:'Reemplazar por la versión star cuando esté lista.'},
+  {n:'Hotel Oxford', t:'Landing de cliente', st:'prod', url:'https://hotel-oxford.vercel.app',
+   gh:'Concepeto/hotel-oxford', vc:'Vercel empresa',
+   rm:'Upsell: chatbot de reservas.'},
+  {n:'MVD Trading', t:'Landing de cliente', st:'prod', url:'https://mvd-trading.vercel.app',
+   gh:'Concepeto/mvd-trading', vc:'Vercel empresa',
+   rm:'Upsell: nurturing de leads.'},
+  {n:'Fernando Estilista', t:'Landing de cliente', st:'prod', url:'',
+   gh:'1brunosilva/FernandoEstilista (legacy)', host:'WordPress + Elementor en tierxhosting',
+   rm:'Upsell: chatbot de turnos.'},
+  {n:'ShockBag (HAL)', t:'Agente de IA', st:'prod', url:'',
+   host:'n8n (brunoconcepto.app.n8n.cloud) + ManyChat',
+   rm:'Mejorar lógica de derivación.'},
+  {n:'Barraca Uno (star)', t:'App nueva (Astro) — el proyecto grande', st:'dev', url:'https://barraca-uno-star.vercel.app',
+   gh:'conceptodevelopment-dev/barraca-uno-star', vc:'Vercel empresa', db:'barraca-prod + barraca-staging',
+   rm:'Cutover: correr 0004_hardening.sql y reemplazar a barraca-uno-hq.'},
+  {n:'Concepto Agentes', t:'Centro de mando de agentes', st:'dev', url:'',
+   gh:'Concepeto/concepto-agentes', db:'(Supabase, confirmar)',
+   rm:'Terminar e integrar.'},
+  {n:'Concepto Empresa', t:'Backup de docs/SOPs', st:'dev', url:'',
+   gh:'Concepeto/concepto-empresa',
+   rm:'Completar la subida (push quedó a medias).'},
+  {n:'Pintelux LUCA', t:'Chatbot de cliente', st:'todo', url:'',
+   host:'n8n / ManyChat (sin empezar)',
+   rm:'🔴 Mes gratis acordado — arrancar implementación.'},
+];
+function renderInfra(){
+  const el=document.getElementById('infra-list'); if(!el) return;
+  const stMap={prod:['tag-green','🟢 Producción'],dev:['tag-orange','🟡 Desarrollo'],todo:['tag-red','🔴 Pendiente']};
+  const row=(k,v)=>`<div style="display:flex;justify-content:space-between;gap:12px;font-size:12px;padding:2px 0"><span style="color:var(--txt3);white-space:nowrap">${k}</span><b style="color:var(--txt2);text-align:right">${v}</b></div>`;
+  const card=(p)=>{
+    const s=stMap[p.st]||['tag-vlt',p.st];
+    const meta=[
+      p.gh?row('GitHub',p.gh):'',
+      p.vc?row('Vercel',p.vc):'',
+      (p.db)?row('Supabase',p.db):'',
+      p.host?row('Host/DNS',p.host):'',
+    ].join('');
+    const open=p.url?`<a href="${p.url}" target="_blank" rel="noopener" class="btn btn-primary btn-sm btn-full" style="text-decoration:none;margin-top:10px">↗ Abrir proyecto</a>`:`<div style="font-size:11px;color:var(--txt3);margin-top:10px">Sin URL web (servicio interno)</div>`;
+    return `<div class="card" style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:2px">
+        <div style="font-weight:700;font-size:15px">${p.n}</div><span class="tag ${s[0]}">${s[1]}</span>
+      </div>
+      <div style="font-size:12px;color:var(--txt3);margin-bottom:8px">${p.t}</div>
+      <div style="border-top:1px solid var(--border);padding-top:6px">${meta}</div>
+      <div style="font-size:12px;color:var(--txt2);margin-top:8px"><b style="color:var(--vlt2)">Roadmap:</b> ${p.rm}</div>
+      ${open}
+    </div>`;
+  };
+  let html='';
+  [['prod','🟢 Producción'],['dev','🟡 En desarrollo'],['todo','🔴 Pendiente']].forEach(([k,label])=>{
+    const items=INFRA.filter(p=>p.st===k);
+    if(!items.length) return;
+    html+=`<div class="sec-label" style="margin-top:14px">${label} · ${items.length}</div>`+items.map(card).join('');
+  });
+  el.innerHTML=html;
+}
 function renderPage(p) {
   if(p==='comando') renderComando();
   else if(p==='socio') renderSocio();
@@ -1805,6 +1900,7 @@ function renderPage(p) {
   else if(p==='projects') renderProjects();
   else if(p==='vault') renderVault();
   else if(p==='clientdetail') renderClientDetail();
+  else if(p==='infra') renderInfra();
 }
 function toggleNegocio() {
   const m=document.getElementById('negocio-menu');

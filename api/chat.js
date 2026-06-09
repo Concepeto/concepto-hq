@@ -20,13 +20,18 @@ export default async function handler(req) {
     });
   }
 
-  if (ADMIN_TOKEN) {
-    const auth = req.headers.get('authorization') || '';
-    if (auth !== `Bearer ${ADMIN_TOKEN}`) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401, headers: { 'Content-Type': 'application/json', ...CORS }
-      });
-    }
+  // FAIL-CLOSED: sin ADMIN_TOKEN configurado el endpoint NO atiende a nadie
+  // (antes quedaba abierto y cualquiera podía quemar tus créditos de IA).
+  if (!ADMIN_TOKEN) {
+    return new Response(JSON.stringify({ error: 'Endpoint no configurado (falta ADMIN_TOKEN)' }), {
+      status: 503, headers: { 'Content-Type': 'application/json', ...CORS }
+    });
+  }
+  const auth = req.headers.get('authorization') || '';
+  if (auth !== `Bearer ${ADMIN_TOKEN}`) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401, headers: { 'Content-Type': 'application/json', ...CORS }
+    });
   }
 
   const { messages, role, data } = await req.json();

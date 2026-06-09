@@ -864,8 +864,8 @@ Decime qué querés lograr — no me cuentes el proceso, contame el objetivo. Yo
       <div id="vault-locked">
         <div class="card" style="text-align:center;padding:28px 16px">
           <div style="font-size:40px;margin-bottom:8px">🔒</div>
-          <div id="vault-lock-msg" style="font-size:13px;color:var(--txt3);margin-bottom:16px">Ingresá tu PIN para ver tus contraseñas</div>
-          <input type="password" id="vault-pin" inputmode="numeric" placeholder="• • • •" style="text-align:center;font-size:22px;letter-spacing:8px;max-width:200px;margin:0 auto" onkeydown="if(event.key==='Enter')unlockVault()">
+          <div id="vault-lock-msg" style="font-size:13px;color:var(--txt3);margin-bottom:16px">Ingresá tu clave para ver tus contraseñas</div>
+          <input type="password" id="vault-pin" autocomplete="off" placeholder="Tu clave" style="text-align:center;font-size:18px;letter-spacing:2px;max-width:240px;margin:0 auto" onkeydown="if(event.key==='Enter')unlockVault()">
           <button class="btn btn-primary btn-full" style="margin-top:14px" onclick="unlockVault()">Desbloquear</button>
         </div>
       </div>
@@ -1617,9 +1617,8 @@ Puedo generarte copy listo para usar, ideas de reels, análisis de qué funciona
 // ══════════════════════════════════════════════════
 const KEY = 'concepto-hq-v1';
 const OS_KEY = 'concepto-os-v3';
-const SB_URL = 'https://zngbeqbvmbxeweldmyaf.supabase.co';
-const SB_KEY = 'sb_publishable_nNQhjFQGR4n8FuSLCjOA0Q_2FsgmXUA';
-const SB_ROW = 'bruno';
+// La data de la nube se accede SOLO por /api/cloud (service_role + ADMIN_TOKEN).
+// Ya no se usa la clave publishable de Supabase en el cliente.
 
 let D = {
   timer:{running:false,startedAt:null,todaySeconds:0,lastDate:'',logs:[]},
@@ -1679,25 +1678,35 @@ function setSyncStatus(s) {
   el.style.background = s==='ok'?'var(--green)':s==='syncing'?'var(--orange)':'var(--red)';
   el.title = s==='ok'?'Sincronizado ✓':s==='syncing'?'Sincronizando...':'Sin conexión';
 }
+// Nube SEGURA: la app ya NO habla directo con Supabase con la clave pública.
+// Pasa por /api/cloud (service_role + ADMIN_TOKEN). SIEMPRE mismo origen (Vercel),
+// NO por el proxy del server local — por eso no usa apiFetch (que antepone SERVER).
+async function cloudFetch(options={}) {
+  const token=getAuthToken();
+  const headers={...(options.headers||{})};
+  if(token) headers['Authorization']=`Bearer ${token}`;
+  const r=await fetch('/api/cloud',{...options,headers});
+  if(r.status===401){ showAuthModal(); return null; }
+  return r;
+}
 async function syncToSupabase() {
   setSyncStatus('syncing');
   try {
-    const r=await fetch(`${SB_URL}/rest/v1/hq_data`,{
+    const r=await cloudFetch({
       method:'POST',
-      headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Prefer':'resolution=merge-duplicates'},
-      body:JSON.stringify({id:SB_ROW,payload:D,updated_at:new Date().toISOString()})
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(D)
     });
-    setSyncStatus(r.ok?'ok':'error');
+    setSyncStatus(r && r.ok ? 'ok':'error');
   } catch{ setSyncStatus('error'); }
 }
 async function loadFromSupabase() {
   try {
-    const r=await fetch(`${SB_URL}/rest/v1/hq_data?id=eq.${SB_ROW}&select=payload`,{
-      headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`}
-    });
-    const rows=await r.json();
-    if(rows&&rows[0]&&rows[0].payload) {
-      const remote=rows[0].payload;
+    const r=await cloudFetch();
+    if(!r) return false;            // 401 -> cloudFetch abre el modal del token
+    const out=await r.json();
+    if(out && out.payload) {
+      const remote=out.payload;
       const proxy=D.settings?.proxy||'';
       D=Object.assign({},D,remote);
       if(proxy) D.settings.proxy=proxy;
@@ -2745,9 +2754,22 @@ function toggleClientTask(id) {
 
 // ── PROYECTOS ─────────────────────────────────────
 
-// ── BÓVEDA (PIN + encriptado AES-GCM en reposo) ───
+// ── BÓVEDA (clave + encriptado AES-GCM en reposo) ───
+// Seguridad: sal ALEATORIA por bóveda (en D.vault.salt) para que no se pueda
+// precomputar/atacar con tablas, + 310.000 iteraciones PBKDF2 (OWASP 2023).
+// Las bóvedas viejas (sal fija) se migran solas al primer desbloqueo correcto.
 let vaultKey = null; // CryptoKey en memoria mientras está desbloqueada
-async function deriveKey(pin){
+const VAULT_ITER = 310000;
+function _b64(bytes){ return btoa(String.fromCharCode(...bytes)); }
+function _unb64(s){ return Uint8Array.from(atob(s),c=>c.charCodeAt(0)); }
+async function deriveKey(pin, saltBytes){
+  const enc=new TextEncoder();
+  const base=await crypto.subtle.importKey('raw',enc.encode(pin),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',salt:saltBytes,iterations:VAULT_ITER,hash:'SHA-256'},
+    base,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+}
+// Legacy (sal fija, 120k) — SOLO para migrar bóvedas creadas antes del fix.
+async function deriveKeyLegacy(pin){
   const enc=new TextEncoder();
   const base=await crypto.subtle.importKey('raw',enc.encode(pin),'PBKDF2',false,['deriveKey']);
   return crypto.subtle.deriveKey({name:'PBKDF2',salt:enc.encode('concepto-hq-vault'),iterations:120000,hash:'SHA-256'},
@@ -2765,35 +2787,62 @@ async function decStr(key,blob){
   const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv},key,ct);
   return new TextDecoder().decode(pt);
 }
-async function unlockVault(){
-  const pin=document.getElementById('vault-pin').value.trim();
-  if(pin.length<4) return notify('El PIN debe tener al menos 4 dígitos');
-  const key=await deriveKey(pin);
-  if(!D.vault.check){
-    // primera vez: este PIN queda como el de la bóveda
-    D.vault.check=await encStr(key,'concepto-ok');
-    save();
-  } else {
-    try{ const v=await decStr(key,D.vault.check); if(v!=='concepto-ok') throw 0; }
-    catch{ document.getElementById('vault-lock-msg').textContent='PIN incorrecto, probá de nuevo'; document.getElementById('vault-pin').value=''; return; }
-  }
+function _vaultFail(){
+  document.getElementById('vault-lock-msg').textContent='Clave incorrecta, probá de nuevo';
+  document.getElementById('vault-pin').value='';
+}
+function _vaultOpen(key){
   vaultKey=key;
   document.getElementById('vault-pin').value='';
   document.getElementById('vault-locked').style.display='none';
   document.getElementById('vault-unlocked').style.display='block';
   renderVaultItems();
 }
+async function unlockVault(){
+  const pin=document.getElementById('vault-pin').value.trim();
+  if(pin.length<4) return notify('La clave debe tener al menos 4 caracteres (mejor: una frase larga)');
+  // CASO 1 — bóveda nueva (ya tiene sal aleatoria propia)
+  if(D.vault.salt){
+    const key=await deriveKey(pin, _unb64(D.vault.salt));
+    if(!D.vault.check){ D.vault.check=await encStr(key,'concepto-ok'); save(); }
+    else { try{ if(await decStr(key,D.vault.check)!=='concepto-ok') throw 0; }catch{ return _vaultFail(); } }
+    return _vaultOpen(key);
+  }
+  // CASO 2 — bóveda vieja (sal fija): verificar con esquema legacy y MIGRAR a sal aleatoria
+  if(D.vault.check){
+    let legacyKey;
+    try{ legacyKey=await deriveKeyLegacy(pin); if(await decStr(legacyKey,D.vault.check)!=='concepto-ok') throw 0; }
+    catch{ return _vaultFail(); }
+    const salt=crypto.getRandomValues(new Uint8Array(16));
+    const newKey=await deriveKey(pin, salt);
+    for(const it of D.vault.items){
+      try{ const plain=await decStr(legacyKey,it.enc); it.enc=await encStr(newKey,plain); }catch{}
+    }
+    D.vault.salt=_b64(salt);
+    D.vault.check=await encStr(newKey,'concepto-ok');
+    save();
+    notify('🔒 Bóveda actualizada a encriptación más fuerte');
+    return _vaultOpen(newKey);
+  }
+  // CASO 3 — primera vez: crear con sal aleatoria
+  const salt=crypto.getRandomValues(new Uint8Array(16));
+  const key=await deriveKey(pin, salt);
+  D.vault.salt=_b64(salt);
+  D.vault.check=await encStr(key,'concepto-ok');
+  save();
+  return _vaultOpen(key);
+}
 function lockVault(){
   vaultKey=null;
   document.getElementById('vault-unlocked').style.display='none';
   document.getElementById('vault-locked').style.display='block';
-  document.getElementById('vault-lock-msg').textContent='Ingresá tu PIN para ver tus contraseñas';
+  document.getElementById('vault-lock-msg').textContent='Ingresá tu clave para ver tus contraseñas';
 }
 function renderVault(){
   // al entrar a la página siempre arranca bloqueada
   if(vaultKey){ document.getElementById('vault-locked').style.display='none'; document.getElementById('vault-unlocked').style.display='block'; renderVaultItems(); }
   else lockVault();
-  document.getElementById('vault-lock-msg').textContent = D.vault.check ? 'Ingresá tu PIN para ver tus contraseñas' : 'Creá un PIN nuevo para tu bóveda (mínimo 4 dígitos)';
+  document.getElementById('vault-lock-msg').textContent = D.vault.check ? 'Ingresá tu clave para ver tus contraseñas' : 'Creá una clave nueva para tu bóveda (mejor una frase larga, no 4 dígitos)';
 }
 async function renderVaultItems(){
   const el=document.getElementById('vault-list');

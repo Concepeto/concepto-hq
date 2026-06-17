@@ -4655,9 +4655,8 @@ function videoCard(v) {
     <div style="font-size:12px;font-weight:700;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${v.name}</div>
     <div style="font-size:10px;color:var(--txt3);font-family:'DM Mono',monospace;margin-bottom:8px">${v.mechanism||''} · ${v.lever||''}</div>
     ${v.storage_url ? `
-    <a href="${v.storage_url}" download="${v.name}.mp4"
-       style="display:flex;align-items:center;justify-content:center;gap:4px;text-align:center;font-size:11px;padding:5px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--txt2);text-decoration:none;margin-bottom:6px"
-       onclick="event.stopPropagation()">⬇ Descargar MP4</a>` : ''}
+    <button onclick="event.stopPropagation();shareVideo('${safeUrl}','${safeName}')"
+       style="display:flex;align-items:center;justify-content:center;gap:4px;width:100%;font-size:11px;padding:5px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--txt2);cursor:pointer;margin-bottom:6px">⬇ Descargar / Compartir</button>` : ''}
     <div id="va-${v.id}">
     ${v.status !== 'posted' ? `
     <div style="display:flex;gap:6px;margin-bottom:6px">
@@ -4767,6 +4766,27 @@ async function updateVideoStatus(id, status) {
   });
 }
 
+async function shareVideo(url, name) {
+  if (!url) return;
+  if (navigator.share) {
+    try {
+      // Intenta compartir el archivo real (iOS muestra "Guardar Video" / "Guardar en Archivos")
+      notify('Preparando descarga...');
+      const r = await fetch(url);
+      const blob = await r.blob();
+      const file = new File([blob], name + '.mp4', { type: 'video/mp4' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: name });
+        return;
+      }
+    } catch(e) {}
+    // Fallback: compartir la URL (igual abre el share sheet de iOS)
+    try { await navigator.share({ title: name, url: url }); return; } catch(e) {}
+  }
+  // Fallback desktop: abrir en nueva pestaña
+  window.open(url, '_blank');
+}
+
 function openVideoFullscreen(url, name, statusLabel) {
   if (!url) return;
   const overlay = document.createElement('div');
@@ -4779,9 +4799,8 @@ function openVideoFullscreen(url, name, statusLabel) {
         <div style="font-size:11px;color:rgba(255,255,255,.45);margin-top:2px">${statusLabel}</div>
       </div>
       <div style="display:flex;gap:8px;align-items:center">
-        <a href="${url}" download="${name}.mp4"
-           style="padding:8px 14px;background:rgba(255,255,255,.12);border-radius:8px;color:#fff;text-decoration:none;font-size:12px;font-weight:600"
-           onclick="event.stopPropagation()">⬇ Descargar</a>
+        <button onclick="event.stopPropagation();shareVideo('${url}','${name}')"
+           style="padding:8px 14px;background:rgba(255,255,255,.12);border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:600;cursor:pointer">⬇ Descargar</button>
         <button onclick="closeVideoFullscreen()" style="width:36px;height:36px;background:rgba(255,255,255,.12);border:none;border-radius:8px;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
       </div>
     </div>

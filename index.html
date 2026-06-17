@@ -638,10 +638,27 @@ Decime qué querés lograr — no me cuentes el proceso, contame el objetivo. Yo
     <div id="page-contenido" class="page">
       <div class="page-title">Contenido</div>
       <div class="subnav">
+        <div class="chip" onclick="setContenidoTab('videos',this)">📺 Videos</div>
         <div class="chip active" onclick="setContenidoTab('scripts',this)">🎬 Scripts MAX</div>
         <div class="chip" onclick="setContenidoTab('copy',this)">✍️ Copy Bank</div>
         <div class="chip" onclick="setContenidoTab('calendar',this)">📅 Calendario</div>
         <div class="chip" onclick="setContenidoTab('prompts',this)">🤖 Prompts</div>
+      </div>
+
+      <!-- ══ VIDEOS TAB ══ -->
+      <div id="cont-videos" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div class="sec-label" style="margin:0">Videos para aprobar</div>
+          <button class="btn btn-ghost btn-sm" onclick="loadVideos()">↻ Actualizar</button>
+        </div>
+        <div id="videos-filter" style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
+          <div class="chip active" onclick="filterVideos('approved',this)">✅ Listos</div>
+          <div class="chip" onclick="filterVideos('pending_approval',this)">⏳ Pendientes</div>
+          <div class="chip" onclick="filterVideos('posted',this)">📤 Publicados</div>
+          <div class="chip" onclick="filterVideos('all',this)">Todos</div>
+        </div>
+        <div id="videos-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px"></div>
+        <div id="videos-empty" style="display:none;text-align:center;padding:32px 0;color:var(--txt3);font-size:13px">No hay videos en esta categoría</div>
       </div>
       <!-- Scripts tab -->
       <div id="cont-scripts">
@@ -3072,10 +3089,12 @@ function setContenidoTab(tab,el) {
   currentContTab=tab;
   document.querySelectorAll('#page-contenido .chip').forEach(c=>c.classList.remove('active'));
   if(el) el.classList.add('active');
+  document.getElementById('cont-videos').style.display=tab==='videos'?'block':'none';
   document.getElementById('cont-scripts').style.display=tab==='scripts'?'block':'none';
   document.getElementById('cont-copy').style.display=tab==='copy'?'block':'none';
   document.getElementById('cont-calendar').style.display=tab==='calendar'?'block':'none';
   document.getElementById('cont-prompts').style.display=tab==='prompts'?'block':'none';
+  if(tab==='videos') loadVideos();
   renderContenido();
 }
 function renderContenido() {
@@ -4524,6 +4543,128 @@ async function loadBrief() {
       }
     }
   } catch {}
+}
+
+// ══════════════════════════════════════════
+// SISTEMA DE VIDEOS — bandeja de aprobación
+// ══════════════════════════════════════════
+const SB_VIDEOS_URL = SB_URL + '/rest/v1';
+const SB_VIDEOS_HEADERS = {
+  'apikey': SB_KEY,
+  'Authorization': 'Bearer ' + SB_KEY,
+  'Content-Type': 'application/json',
+  'Prefer': 'return=representation'
+};
+
+let videosCurrentFilter = 'approved';
+let videosData = [];
+
+async function loadVideos() {
+  const grid = document.getElementById('videos-grid');
+  const empty = document.getElementById('videos-empty');
+  grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--txt3);font-size:13px">Cargando videos...</div>';
+  empty.style.display = 'none';
+  try {
+    let url = SB_VIDEOS_URL + '/videos?order=created_at.desc&select=*';
+    if (videosCurrentFilter !== 'all') url += '&status=eq.' + videosCurrentFilter;
+    const r = await fetch(url, { headers: SB_VIDEOS_HEADERS });
+    videosData = await r.json();
+    renderVideosGrid();
+  } catch(e) {
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--red);font-size:13px">Error cargando videos</div>';
+  }
+}
+
+function filterVideos(f, el) {
+  videosCurrentFilter = f;
+  document.querySelectorAll('#videos-filter .chip').forEach(c => c.classList.remove('active'));
+  if (el) el.classList.add('active');
+  loadVideos();
+}
+
+function renderVideosGrid() {
+  const grid = document.getElementById('videos-grid');
+  const empty = document.getElementById('videos-empty');
+  if (!videosData || videosData.length === 0) {
+    grid.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  grid.innerHTML = videosData.map(v => videoCard(v)).join('');
+}
+
+function videoCard(v) {
+  const statusColor = {
+    approved: 'var(--green)',
+    pending_approval: 'var(--orange)',
+    posted: 'var(--blue)',
+    rejected: 'var(--red)'
+  }[v.status] || 'var(--txt3)';
+  const statusLabel = {
+    approved: '✅ Aprobado',
+    pending_approval: '⏳ Pendiente',
+    posted: '📤 Publicado',
+    rejected: '❌ Rechazado'
+  }[v.status] || v.status;
+
+  return `<div class="card-sm" style="padding:10px;position:relative" id="vcard-${v.id}">
+    <div style="position:relative;border-radius:8px;overflow:hidden;background:#000;aspect-ratio:9/16;margin-bottom:8px">
+      ${v.storage_url
+        ? `<video src="${v.storage_url}" style="width:100%;height:100%;object-fit:cover" preload="none" controls playsinline
+             poster="" onerror="this.style.display='none'"></video>`
+        : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--txt3);font-size:11px">Sin URL</div>`
+      }
+      <div style="position:absolute;top:6px;left:6px;background:rgba(0,0,0,.7);border-radius:4px;padding:2px 6px;font-size:10px;font-family:'DM Mono',monospace;color:${statusColor}">${statusLabel}</div>
+    </div>
+    <div style="font-size:12px;font-weight:700;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${v.name}</div>
+    <div style="font-size:10px;color:var(--txt3);font-family:'DM Mono',monospace;margin-bottom:8px">${v.mechanism||''} · ${v.lever||''}</div>
+    ${v.status !== 'posted' ? `
+    <div style="display:flex;gap:6px;margin-bottom:6px">
+      <button class="btn btn-sm" style="flex:1;background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.3);color:#4ade80;font-size:11px;padding:5px 0"
+        onclick="approveVideo('${v.id}')">✅ Aprobar</button>
+      <button class="btn btn-sm btn-ghost" style="flex:1;font-size:11px;padding:5px 0;color:var(--red);border-color:rgba(239,68,68,.3)"
+        onclick="rejectVideo('${v.id}')">✕ No</button>
+    </div>
+    <div style="display:flex;gap:6px">
+      <input type="text" id="correction-${v.id}" placeholder="Corrección..." style="flex:1;font-size:11px;padding:5px 8px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--txt1)">
+      <button class="btn btn-sm btn-ghost" style="font-size:11px;padding:5px 8px" onclick="sendCorrection('${v.id}')">→</button>
+    </div>` : `<div style="font-size:11px;color:var(--txt3);text-align:center;padding:4px 0">Publicado ✓</div>`}
+  </div>`;
+}
+
+async function approveVideo(id) {
+  await updateVideoStatus(id, 'approved');
+  notify('✅ Video aprobado');
+  loadVideos();
+}
+
+async function rejectVideo(id) {
+  await updateVideoStatus(id, 'rejected');
+  notify('Video rechazado');
+  loadVideos();
+}
+
+async function sendCorrection(id) {
+  const inp = document.getElementById('correction-' + id);
+  const txt = inp ? inp.value.trim() : '';
+  if (!txt) return;
+  await fetch(SB_VIDEOS_URL + '/videos?id=eq.' + id, {
+    method: 'PATCH',
+    headers: SB_VIDEOS_HEADERS,
+    body: JSON.stringify({ notes: txt, status: 'pending_approval' })
+  });
+  notify('Corrección enviada');
+  inp.value = '';
+  loadVideos();
+}
+
+async function updateVideoStatus(id, status) {
+  await fetch(SB_VIDEOS_URL + '/videos?id=eq.' + id, {
+    method: 'PATCH',
+    headers: SB_VIDEOS_HEADERS,
+    body: JSON.stringify({ status })
+  });
 }
 </script>
 </body>

@@ -653,11 +653,11 @@ Decime qué querés lograr — no me cuentes el proceso, contame el objetivo. Yo
           <button class="btn btn-ghost btn-sm" onclick="loadVideos()">↻ Actualizar</button>
         </div>
         <div id="videos-filter" style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
-          <div class="chip active" onclick="filterVideos('pending_approval',this)">⏳ Para decidir</div>
+          <div class="chip" onclick="filterVideos('pending_approval',this)">⏳ Para decidir</div>
           <div class="chip" onclick="filterVideos('approved',this)">✅ Aprobados</div>
           <div class="chip" onclick="filterVideos('posted',this)">📤 Publicados</div>
           <div class="chip" onclick="filterVideos('rejected',this)">❌ Rechazados</div>
-          <div class="chip" onclick="filterVideos('all',this)">Todos</div>
+          <div class="chip active" onclick="filterVideos('all',this)">Todos</div>
         </div>
         <div id="videos-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px"></div>
         <div id="videos-empty" style="display:none;text-align:center;padding:32px 0;color:var(--txt3);font-size:13px">No hay videos en esta categoría</div>
@@ -4583,7 +4583,7 @@ const SB_VIDEOS_HEADERS = {
   'Prefer': 'return=representation'
 };
 
-let videosCurrentFilter = 'pending_approval';
+let videosCurrentFilter = 'all';
 let videosData = [];
 
 async function loadVideos() {

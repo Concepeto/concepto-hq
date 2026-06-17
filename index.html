@@ -639,6 +639,7 @@ Decime qué querés lograr — no me cuentes el proceso, contame el objetivo. Yo
       <div class="page-title">Contenido</div>
       <div class="subnav">
         <div class="chip" onclick="setContenidoTab('videos',this)">📺 Videos</div>
+        <div class="chip" onclick="setContenidoTab('metricas',this)">📊 Métricas</div>
         <div class="chip active" onclick="setContenidoTab('scripts',this)">🎬 Scripts MAX</div>
         <div class="chip" onclick="setContenidoTab('copy',this)">✍️ Copy Bank</div>
         <div class="chip" onclick="setContenidoTab('calendar',this)">📅 Calendario</div>
@@ -660,6 +661,23 @@ Decime qué querés lograr — no me cuentes el proceso, contame el objetivo. Yo
         </div>
         <div id="videos-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px"></div>
         <div id="videos-empty" style="display:none;text-align:center;padding:32px 0;color:var(--txt3);font-size:13px">No hay videos en esta categoría</div>
+      </div>
+      <!-- ══ METRICAS TAB ══ -->
+      <div id="cont-metricas" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div class="sec-label" style="margin:0">Métricas + Cerebro IA</div>
+          <button class="btn btn-ghost btn-sm" onclick="loadMetricas()">↻ Actualizar</button>
+        </div>
+        <!-- Insights del cerebro -->
+        <div id="metricas-insights" style="display:grid;gap:8px;margin-bottom:16px"></div>
+        <!-- Ranking orgánico -->
+        <div class="sec-label" style="margin-bottom:8px">Ranking orgánico IG</div>
+        <div id="metricas-ranking" style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px">
+          <div style="text-align:center;padding:20px;color:var(--txt3);font-size:13px">Cargando...</div>
+        </div>
+        <!-- Pauta Meta Ads -->
+        <div class="sec-label" style="margin-bottom:8px">Pauta Meta Ads</div>
+        <div id="metricas-pauta" style="display:flex;flex-direction:column;gap:6px"></div>
       </div>
       <!-- Scripts tab -->
       <div id="cont-scripts">
@@ -3097,11 +3115,13 @@ function setContenidoTab(tab,el) {
   document.querySelectorAll('#page-contenido .chip').forEach(c=>c.classList.remove('active'));
   if(el) el.classList.add('active');
   document.getElementById('cont-videos').style.display=tab==='videos'?'block':'none';
+  document.getElementById('cont-metricas').style.display=tab==='metricas'?'block':'none';
   document.getElementById('cont-scripts').style.display=tab==='scripts'?'block':'none';
   document.getElementById('cont-copy').style.display=tab==='copy'?'block':'none';
   document.getElementById('cont-calendar').style.display=tab==='calendar'?'block':'none';
   document.getElementById('cont-prompts').style.display=tab==='prompts'?'block':'none';
   if(tab==='videos') loadVideos();
+  if(tab==='metricas') loadMetricas();
   renderContenido();
 }
 function renderContenido() {
@@ -4733,6 +4753,82 @@ async function updateVideoStatus(id, status) {
     headers: SB_VIDEOS_HEADERS,
     body: JSON.stringify({ status })
   });
+}
+
+// ══ MÉTRICAS ══
+async function loadMetricas() {
+  const insEl = document.getElementById('metricas-insights');
+  const rankEl = document.getElementById('metricas-ranking');
+  const pautaEl = document.getElementById('metricas-pauta');
+  insEl.innerHTML = '<div style="color:var(--txt3);font-size:13px;text-align:center;padding:12px">Cargando insights...</div>';
+  rankEl.innerHTML = '<div style="color:var(--txt3);font-size:13px;text-align:center;padding:12px">Cargando ranking...</div>';
+  pautaEl.innerHTML = '';
+
+  try {
+    const [insights, organic, paid] = await Promise.all([
+      fetch(SB_VIDEOS_URL + '/learning_insights?order=generated_at.desc&select=*', { headers: SB_VIDEOS_HEADERS }).then(r => r.json()),
+      fetch(SB_VIDEOS_URL + '/video_metrics?platform=eq.instagram_organic&order=saves.desc&select=*,videos(name,mechanism,lever)', { headers: SB_VIDEOS_HEADERS }).then(r => r.json()),
+      fetch(SB_VIDEOS_URL + '/video_metrics?platform=eq.meta_ads&order=spend.desc&select=*', { headers: SB_VIDEOS_HEADERS }).then(r => r.json())
+    ]);
+
+    // Cerebro insights
+    if (!insights || insights.length === 0) {
+      insEl.innerHTML = '<div style="background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.2);border-radius:10px;padding:14px;font-size:13px;color:var(--txt3);text-align:center">El cerebro empieza a aprender cuando tengas videos publicados con métricas. Volvé mañana después de las 10am.</div>';
+    } else {
+      const typeColors = { top_mechanism:'rgba(34,197,94,.12)', top_lever:'rgba(168,85,247,.12)', top_video:'rgba(59,130,246,.12)', bottom_video:'rgba(239,68,68,.08)' };
+      const typeBorders = { top_mechanism:'rgba(34,197,94,.3)', top_lever:'rgba(168,85,247,.3)', top_video:'rgba(59,130,246,.3)', bottom_video:'rgba(239,68,68,.2)' };
+      insEl.innerHTML = insights.map(ins => `
+        <div style="background:${typeColors[ins.type]||'rgba(255,255,255,.04)'};border:1px solid ${typeBorders[ins.type]||'var(--border2)'};border-radius:10px;padding:14px">
+          <div style="font-size:10px;color:var(--txt3);font-family:'DM Mono',monospace;margin-bottom:4px">${ins.title||ins.type}</div>
+          <div style="font-size:15px;font-weight:700;margin-bottom:4px">${ins.insight||''}</div>
+          <div style="font-size:12px;color:var(--txt2);line-height:1.4">${ins.detail||''}</div>
+        </div>`).join('');
+    }
+
+    // Ranking orgánico
+    if (!organic || organic.length === 0) {
+      rankEl.innerHTML = '<div style="color:var(--txt3);font-size:13px;text-align:center;padding:16px">Sin datos orgánicos todavía</div>';
+    } else {
+      const scored = organic.map(m => ({
+        ...m,
+        score: (m.saves||0)*3 + (m.shares||0)*2 + (m.likes||0) + Math.round((m.plays||0)/100)
+      })).sort((a,b) => b.score - a.score);
+      rankEl.innerHTML = scored.map((m, i) => `
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg2);border-radius:8px">
+          <div style="font-size:14px;font-weight:800;color:${i===0?'#fbbf24':i===1?'#94a3b8':i===2?'#cd7c2f':'var(--txt3)'};min-width:20px">${i+1}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.videos?.name||'—'}</div>
+            <div style="font-size:10px;color:var(--txt3);font-family:'DM Mono',monospace">${m.videos?.mechanism||''} · ${m.videos?.lever||''}</div>
+          </div>
+          <div style="display:flex;gap:8px;font-size:11px;font-family:'DM Mono',monospace">
+            <span title="Plays">▶ ${m.plays||0}</span>
+            <span title="Saves" style="color:#a78bfa">🔖 ${m.saves||0}</span>
+            <span title="Reach">👁 ${m.reach||0}</span>
+          </div>
+          <div style="font-size:12px;font-weight:800;color:var(--vlt2);min-width:28px;text-align:right">${m.score}</div>
+        </div>`).join('');
+    }
+
+    // Pauta
+    if (!paid || paid.length === 0) {
+      pautaEl.innerHTML = '<div style="color:var(--txt3);font-size:13px;text-align:center;padding:16px">Sin datos de pauta todavía</div>';
+    } else {
+      pautaEl.innerHTML = paid.map(m => `
+        <div style="padding:10px 12px;background:var(--bg2);border-radius:8px">
+          <div style="font-size:12px;font-weight:700;margin-bottom:6px">${m.ad_name||m.ad_id}</div>
+          <div style="display:flex;gap:12px;font-size:11px;font-family:'DM Mono',monospace;flex-wrap:wrap">
+            <span>💸 $${(m.spend||0).toFixed(2)}</span>
+            <span>👁 ${(m.impressions||0).toLocaleString()}</span>
+            <span>🖱 ${m.clicks||0} clicks</span>
+            <span>CTR ${(m.ctr||0).toFixed(2)}%</span>
+            ${m.leads ? '<span style="color:#4ade80">✉️ '+m.leads+' leads</span>' : ''}
+            ${m.messages ? '<span style="color:#60a5fa">💬 '+m.messages+' msgs</span>' : ''}
+          </div>
+        </div>`).join('');
+    }
+  } catch(e) {
+    insEl.innerHTML = '<div style="color:var(--red);font-size:13px;text-align:center;padding:12px">Error cargando métricas</div>';
+  }
 }
 </script>
 </body>

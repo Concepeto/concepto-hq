@@ -4625,10 +4625,11 @@ function videoCard(v) {
     </div>
     <div style="font-size:12px;font-weight:700;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${v.name}</div>
     <div style="font-size:10px;color:var(--txt3);font-family:'DM Mono',monospace;margin-bottom:8px">${v.mechanism||''} · ${v.lever||''}</div>
+    <div id="va-${v.id}">
     ${v.status !== 'posted' ? `
     <div style="display:flex;gap:6px;margin-bottom:6px">
       <button class="btn btn-sm" style="flex:1;background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.3);color:#4ade80;font-size:11px;padding:5px 0"
-        onclick="approveVideo('${v.id}')">✅ Aprobar</button>
+        onclick="openCaptionEditor('${v.id}')">✅ Aprobar</button>
       <button class="btn btn-sm btn-ghost" style="flex:1;font-size:11px;padding:5px 0;color:var(--red);border-color:rgba(239,68,68,.3)"
         onclick="rejectVideo('${v.id}')">✕ No</button>
     </div>
@@ -4636,12 +4637,72 @@ function videoCard(v) {
       <input type="text" id="correction-${v.id}" placeholder="Corrección..." style="flex:1;font-size:11px;padding:5px 8px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--txt1)">
       <button class="btn btn-sm btn-ghost" style="font-size:11px;padding:5px 8px" onclick="sendCorrection('${v.id}')">→</button>
     </div>` : `<div style="font-size:11px;color:var(--txt3);text-align:center;padding:4px 0">Publicado ✓</div>`}
+    </div>
   </div>`;
 }
 
-async function approveVideo(id) {
+const LEVER_CAPTIONS = {
+  loss_aversion: 'Lo que no medís, lo estás perdiendo en silencio.',
+  memory: 'Tu cliente te olvida más rápido de lo que pensás.',
+  attention: 'Tenés 2 segundos para capturar la atención. Así funciona el scroll.',
+  paradox_of_choice: 'Más opciones no es mejor. Tu cliente se paraliza.',
+  anchoring: 'El primer número que mostrás define cómo perciben todo lo que sigue.',
+  social_proof: 'La prueba social vale más que cualquier argumento de ventas.',
+  mere_exposure: 'La familiaridad genera confianza. La confianza genera ventas.',
+  zeigarnik: 'El cerebro no puede ignorar lo que quedó incompleto.',
+  peak_end_rule: 'Tu cliente recuerda el momento culmine y el final. No el promedio.',
+  identity: 'La gente no compra productos. Compra quien quiere ser.',
+  price_anchoring: 'El precio nunca se juzga solo. Siempre se compara.',
+  decoy_effect: 'Agregar una opción "mala" hace que la buena parezca obvia.',
+  open_loop: 'El cerebro no descansa hasta cerrar lo que quedó abierto.',
+  time_pressure: 'El tiempo limita la decisión. La urgencia real convierte.',
+  loss_frame: 'No es lo que ganás. Es lo que dejás de perder.',
+};
+
+function generateCaption(v) {
+  const hook = LEVER_CAPTIONS[v.lever] || 'La psicología del consumidor cambia todo.';
+  return `${hook}\n\nEn Concepto usamos IA para aplicar esto en tu negocio. 🧠\n\n→ Escribime si querés ver cómo.\n\n#MarketingUruguay #IA #NegociosUY #Concepto #ConceptoDevelopment`;
+}
+
+function openCaptionEditor(id) {
+  const v = videosData.find(x => x.id === id);
+  if (!v) return;
+  const va = document.getElementById('va-' + id);
+  if (!va) return;
+  const defaultCaption = generateCaption(v);
+  va.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <div style="font-size:10px;color:var(--txt3);font-family:'DM Mono',monospace">Caption para Instagram (editá si querés):</div>
+      <textarea id="caption-${id}" style="font-size:11px;padding:8px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--txt1);resize:none;height:90px;line-height:1.4;width:100%;box-sizing:border-box">${defaultCaption}</textarea>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-sm" style="flex:1;background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.3);color:#4ade80;font-size:11px;padding:5px 0"
+          onclick="confirmApproveVideo('${id}')">✅ Programar</button>
+        <button class="btn btn-sm btn-ghost" style="font-size:11px;padding:5px 10px"
+          onclick="renderVideosGrid()">✕</button>
+      </div>
+    </div>`;
+}
+
+async function confirmApproveVideo(id) {
+  const caption = document.getElementById('caption-' + id)?.value || '';
+  await approveVideo(id, caption);
+}
+
+async function approveVideo(id, caption) {
+  const v = videosData.find(x => x.id === id);
   await updateVideoStatus(id, 'approved');
-  notify('✅ Video aprobado');
+  const N8N_REEL_WEBHOOK = 'https://brunoconcepto.app.n8n.cloud/webhook/concepto-reel-hq-Xk9pL2mN8vQ5';
+  fetch(N8N_REEL_WEBHOOK, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      video_id: id,
+      video_url: v?.storage_url || '',
+      caption: caption || generateCaption(v || {}),
+      name: v?.name || ''
+    })
+  }).catch(() => {});
+  notify('✅ Programado → se publica en ~15 min');
   loadVideos();
 }
 

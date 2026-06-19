@@ -4723,7 +4723,7 @@ async function confirmApproveVideo(id) {
 async function approveVideo(id, caption) {
   const v = videosData.find(x => x.id === id);
   await updateVideoStatus(id, 'approved');
-  const N8N_REEL_WEBHOOK = 'https://brunoconcepto.app.n8n.cloud/webhook/concepto-reel-hq-Xk9pL2mN8vQ5';
+  const N8N_REEL_WEBHOOK = 'https://n8nconcepto-u74817.vm.elestio.app/webhook/concepto-reel-hq-Xk9pL2mN8vQ5';
   fetch(N8N_REEL_WEBHOOK, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

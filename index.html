@@ -322,6 +322,16 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
         </div>
       </div>
 
+      <!-- Centro de Control -->
+      <div class="card" id="cc-card" style="margin-bottom:12px">
+        <div class="sec-label" style="display:flex;justify-content:space-between;align-items:center">
+          <span>Centro de Control</span>
+          <span id="cc-summary" style="font-size:11px;color:var(--txt2);font-weight:400"></span>
+        </div>
+        <div id="cc-attention" style="display:flex;flex-direction:column;gap:6px;margin:6px 0"></div>
+        <div id="cc-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px"></div>
+      </div>
+
       <!-- Ingresos mes a mes -->
       <div class="card" style="margin-bottom:12px">
         <div class="sec-label">Ingresos mes a mes</div>
@@ -2220,11 +2230,31 @@ function renderDashPipelineStages() {
     </div>`;
   }).join('');
 }
+async function renderCentroControl() {
+  const grid=document.getElementById('cc-grid'); if(!grid) return;
+  const sum=document.getElementById('cc-summary');
+  const att=document.getElementById('cc-attention');
+  const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+  const COL={verde:'var(--green)',rojo:'var(--red)',amarillo:'var(--orange)',gris:'var(--txt3)'};
+  try {
+    const r=await fetch(`${SB_URL}/rest/v1/estado_sistema?select=*&order=orden.asc`,{headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`}});
+    const rows=await r.json();
+    if(!Array.isArray(rows)||!rows.length){ grid.innerHTML='<div style="color:var(--txt2);font-size:12px">Sin datos del sistema todavía.</div>'; if(sum)sum.textContent=''; if(att)att.innerHTML=''; return; }
+    const c={verde:0,rojo:0,amarillo:0,gris:0};
+    rows.forEach(x=>{c[x.estado]=(c[x.estado]||0)+1;});
+    if(sum) sum.textContent=`${c.verde} OK · ${c.rojo} caídos · ${c.amarillo} alerta`;
+    const aten=rows.filter(x=>x.estado==='rojo'||x.estado==='amarillo');
+    if(att) att.innerHTML=aten.map(x=>`<div style="display:flex;align-items:center;gap:8px;background:#15151f;border-left:3px solid ${COL[x.estado]};border-radius:8px;padding:8px 10px"><span style="font-size:13px;color:var(--txt1)">${esc(x.nombre)}</span><span style="font-size:11px;color:var(--txt2);margin-left:auto">${esc(x.mensaje||'')}</span></div>`).join('');
+    grid.innerHTML=rows.map(x=>`<div style="display:flex;align-items:center;gap:8px;background:#15151f;border:1px solid #26263a;border-radius:8px;padding:8px 10px"><span style="width:9px;height:9px;border-radius:50%;background:${COL[x.estado]||'var(--txt3)'};flex-shrink:0"></span><span style="font-size:13px;color:var(--txt1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(x.nombre)}</span></div>`).join('');
+  } catch(e){ grid.innerHTML='<div style="color:var(--txt2);font-size:12px">No se pudo leer el estado del sistema.</div>'; }
+}
+setInterval(()=>{ if(currentPage==='comando') renderCentroControl(); }, 60000);
 function renderComando() {
   buildBrief();
   renderAlerts();
   renderTodayAgenda();
   renderRadar();
+  renderCentroControl();
   const clients=D.clients.filter(c=>c.status==='activo');
   const mrr=clients.reduce((s,c)=>s+(Number(c.fee)||0),0);
   const pipeline=D.pipeline.filter(p=>p.stage!=='cerrado'&&p.stage!=='perdido');

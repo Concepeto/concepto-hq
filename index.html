@@ -406,6 +406,24 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
     </div>
 
     <!-- ═══════════════ MAX AI ═══════════════ -->
+    <div id="page-leads" class="page">
+      <div class="page-title">🎯 Leads</div>
+      <div style="font-size:14px;color:var(--txt3);margin:-6px 0 16px;line-height:1.5">Empresas que el motor encuentra solo cada mañana. Llamá o escribí, y marcá "contactado".</div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:18px">
+        <select id="leads-rubro" onchange="applyLeadFilter()" style="background:var(--bg2);color:var(--txt1);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:15px;font-family:inherit">
+          <option value="">Todos los rubros</option>
+        </select>
+        <select id="leads-status" onchange="applyLeadFilter()" style="background:var(--bg2);color:var(--txt1);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:15px;font-family:inherit">
+          <option value="nuevo">Sin contactar</option>
+          <option value="">Todos</option>
+          <option value="contactado">Contactados</option>
+        </select>
+        <button onclick="loadLeads()" style="background:var(--bg2);color:var(--txt1);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:15px;cursor:pointer">↻ Actualizar</button>
+        <span id="leads-count" style="font-size:14px;color:var(--txt3);font-family:'DM Mono',monospace;margin-left:auto"></span>
+      </div>
+      <div id="leads-list"></div>
+    </div>
+
     <div id="page-ai" class="page">
       <div class="page-title">MAX AI</div>
       <!-- Mode bar -->
@@ -1415,6 +1433,7 @@ Puedo generarte copy listo para usar, ideas de reels, análisis de qué funciona
       </div>
       <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--txt3);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Ventas</div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">
+        <button class="qa-btn" style="background:linear-gradient(135deg,rgba(124,58,237,.18),rgba(168,85,247,.08));border:1px solid rgba(124,58,237,.35);border-radius:12px;padding:12px 8px" onclick="goToPage('leads');closeMoreMenu()"><div class="qa-icon">🎯</div><div class="qa-label" style="color:var(--vlt2)">Leads</div></button>
         <button class="qa-btn" style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px 8px" onclick="goToPage('propuestas')"><div class="qa-icon">📄</div><div class="qa-label">Propuestas</div></button>
         <button class="qa-btn" style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px 8px" onclick="goToPage('ai')"><div class="qa-icon">🤖</div><div class="qa-label">MAX</div></button>
         <button class="qa-btn" style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px 8px" onclick="goToPage('settings')"><div class="qa-icon">⚙️</div><div class="qa-label">Config</div></button>
@@ -1796,12 +1815,12 @@ function notify(msg, duration=2500) {
 // ── NAVIGATION ─────────────────────────────────────
 const PAGES = ['comando','ai','socio','pipeline','clients','tasks','focus','timer','finance',
                'contenido','propuestas','recursos','ideas','goals','notes','calc','settings','marketing','instagram',
-               'vault','clientdetail','infra'];
+               'vault','clientdetail','infra','leads'];
 const NAV_MAP = {
   comando:'nav-comando',
   clients:'nav-clients', clientdetail:'nav-clients',
   infra:'nav-projects',
-  pipeline:'nav-ventas', propuestas:'nav-ventas',
+  pipeline:'nav-ventas', propuestas:'nav-ventas', leads:'nav-ventas',
   ai:'nav-more', socio:'nav-more', marketing:'nav-more', ideas:'nav-more',
   finance:'nav-more', tasks:'nav-more', focus:'nav-more', timer:'nav-more', goals:'nav-more',
   contenido:'nav-more', recursos:'nav-more', notes:'nav-more', calc:'nav-more', settings:'nav-more',
@@ -1937,7 +1956,89 @@ function renderPage(p) {
   else if(p==='vault') renderVault();
   else if(p==='clientdetail') renderClientDetail();
   else if(p==='infra') renderInfra();
+  else if(p==='leads') loadLeads();
 }
+// ═══════════════ LEADS (#43) — motor de prospección ═══════════════
+// Lee la tabla `leads` directo de Supabase con la key publishable (RLS = solo lectura).
+// El estado "contactado" vive en D.leadsContacted (privado, sincroniza con hq_data), NO en la tabla.
+let LEADS_ALL = [];
+function escLead(s){ return String(s==null?'':s).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function leadsMsg(t){ return '<div style="text-align:center;color:var(--txt3);padding:36px 16px;font-size:15px;line-height:1.6;border:1px dashed var(--border);border-radius:14px">'+escLead(t)+'</div>'; }
+function leadsContactSet(){ if(!Array.isArray(D.leadsContacted)) D.leadsContacted=[]; return D.leadsContacted; }
+function isLeadContactado(l){ return leadsContactSet().indexOf(l.place_id) >= 0; }
+
+async function loadLeads() {
+  const list = document.getElementById('leads-list');
+  const cnt = document.getElementById('leads-count');
+  if (!list) return;
+  list.innerHTML = '<div style="text-align:center;color:var(--txt3);padding:40px 0;font-size:15px">Cargando leads…</div>';
+  if (cnt) cnt.textContent = '';
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/leads?select=id,company_name,rubro,status,score,notes,created_at,place_id&order=created_at.desc&limit=400`, {
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+    });
+    if (!r.ok) { list.innerHTML = leadsMsg('No se pudo leer leads (Supabase '+r.status+'). ¿Ya corriste el SQL de permisos?'); return; }
+    const rows = await r.json();
+    LEADS_ALL = Array.isArray(rows) ? rows : [];
+    buildRubroFilter(LEADS_ALL);
+    applyLeadFilter();
+  } catch(e) {
+    list.innerHTML = leadsMsg('No se pudo cargar. Revisá la conexión.');
+  }
+}
+
+function buildRubroFilter(leads){
+  const sel = document.getElementById('leads-rubro');
+  if (!sel) return;
+  const cur = sel.value;
+  const rubros = [...new Set(leads.map(l=>l.rubro).filter(Boolean))].sort();
+  sel.innerHTML = '<option value="">Todos los rubros</option>' + rubros.map(r=>`<option value="${escLead(r)}">${escLead(r)}</option>`).join('');
+  sel.value = cur;
+}
+
+function applyLeadFilter(){
+  const list = document.getElementById('leads-list');
+  const cnt = document.getElementById('leads-count');
+  if (!list) return;
+  const rubro = (document.getElementById('leads-rubro')||{}).value || '';
+  const status = (document.getElementById('leads-status')||{}).value || '';
+  let rows = LEADS_ALL.slice();
+  if (rubro) rows = rows.filter(l=>l.rubro===rubro);
+  if (status==='nuevo') rows = rows.filter(l=>!isLeadContactado(l));
+  else if (status==='contactado') rows = rows.filter(l=>isLeadContactado(l));
+  if (cnt) cnt.textContent = rows.length + ' / ' + LEADS_ALL.length + ' empresas';
+  if (!rows.length){ list.innerHTML = leadsMsg(LEADS_ALL.length ? 'No hay leads con ese filtro.' : 'Todavía no hay leads. El motor carga empresas nuevas cada mañana a las 8.'); return; }
+  list.innerHTML = rows.map(leadCard).join('');
+}
+
+function leadCard(l){
+  const contactado = isLeadContactado(l);
+  const mapsUrl = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent((l.company_name||'') + ' Uruguay');
+  const pid = escLead(l.place_id);
+  return `<div style="background:var(--bg1);border:1px solid ${contactado?'var(--border)':'var(--vlt-glow)'};border-radius:16px;padding:16px 18px;margin-bottom:12px;${contactado?'opacity:.55':''}">
+    <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
+      <div style="min-width:0">
+        <div style="font-size:18px;font-weight:700;line-height:1.25;color:var(--txt1)">${escLead(l.company_name)}</div>
+        <div style="font-size:13.5px;color:var(--txt3);margin-top:5px;line-height:1.5">${escLead(l.notes||'')}</div>
+      </div>
+      <span style="flex-shrink:0;background:var(--vlt-glow);color:var(--vlt2);font-size:12px;font-family:'DM Mono',monospace;padding:5px 10px;border-radius:20px;white-space:nowrap">${escLead(l.rubro||'')}</span>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
+      <a href="${mapsUrl}" target="_blank" rel="noopener" style="background:var(--bg2);border:1px solid var(--border);color:var(--txt1);border-radius:10px;padding:9px 14px;font-size:14px;text-decoration:none">📍 Ver en Maps</a>
+      <button onclick="marcarContactado('${pid}', ${contactado?'false':'true'})" style="background:${contactado?'var(--bg2)':'linear-gradient(135deg,var(--vlt),var(--vlt2))'};color:${contactado?'var(--txt3)':'#fff'};border:1px solid ${contactado?'var(--border)':'transparent'};border-radius:10px;padding:9px 16px;font-size:14px;cursor:pointer;font-weight:600">${contactado?'↩ Sin contactar':'✓ Marcar contactado'}</button>
+    </div>
+  </div>`;
+}
+
+function marcarContactado(placeId, contactar){
+  const set = leadsContactSet();
+  const i = set.indexOf(placeId);
+  if (contactar && i < 0) set.push(placeId);
+  else if (!contactar && i >= 0) set.splice(i, 1);
+  if (typeof save === 'function') save();   // sincroniza a hq_data (privado)
+  applyLeadFilter();
+}
+
 function toggleNegocio() {
   const m=document.getElementById('negocio-menu');
   m.classList.toggle('open');

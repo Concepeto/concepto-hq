@@ -1967,6 +1967,18 @@ function escLead(s){ return String(s==null?'':s).replace(/[&<>"']/g, m=>({'&':'&
 function leadsMsg(t){ return '<div style="text-align:center;color:var(--txt3);padding:36px 16px;font-size:15px;line-height:1.6;border:1px dashed var(--border);border-radius:14px">'+escLead(t)+'</div>'; }
 function leadsContactSet(){ if(!Array.isArray(D.leadsContacted)) D.leadsContacted=[]; return D.leadsContacted; }
 function isLeadContactado(l){ return leadsContactSet().indexOf(l.place_id) >= 0; }
+// Teléfono UY → número WhatsApp internacional. Solo celulares (09X, 9 dígitos) tienen WhatsApp.
+function leadPhoneDigits(p){ return String(p==null?'':p).replace(/\D/g,''); }
+function leadWaNumber(p){ const n=leadPhoneDigits(p); return (n.startsWith('09') && n.length===9) ? ('598'+n.slice(1)) : null; }
+// Botón de contacto: WhatsApp con el guion pre-cargado si es celular; si es fijo, link para llamar.
+function leadContactBtn(l, guion, sz){
+  const big = sz!=='sm';
+  const pad = big ? '9px 14px' : '8px 14px', fs = big ? '14px' : '13px', br = big ? '10px' : '9px';
+  const wa = leadWaNumber(l.phone);
+  if (wa) return `<a href="https://wa.me/${wa}?text=${encodeURIComponent(guion)}" target="_blank" rel="noopener" style="background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;border:none;border-radius:${br};padding:${pad};font-size:${fs};font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:6px">💬 WhatsApp</a>`;
+  if (l.phone) return `<a href="tel:${leadPhoneDigits(l.phone)}" style="background:var(--bg2);border:1px solid var(--border);color:var(--txt1);border-radius:${br};padding:${pad};font-size:${fs};text-decoration:none">📞 ${escLead(l.phone)}</a>`;
+  return '';
+}
 
 async function loadLeads() {
   const list = document.getElementById('leads-list');
@@ -1975,7 +1987,7 @@ async function loadLeads() {
   list.innerHTML = '<div style="text-align:center;color:var(--txt3);padding:40px 0;font-size:15px">Cargando leads…</div>';
   if (cnt) cnt.textContent = '';
   try {
-    const r = await fetch(`${SB_URL}/rest/v1/leads?select=id,company_name,rubro,status,score,notes,created_at,place_id&order=created_at.desc&limit=400`, {
+    const r = await fetch(`${SB_URL}/rest/v1/leads?select=id,company_name,rubro,status,score,notes,created_at,place_id,phone,website&order=created_at.desc&limit=400`, {
       headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
     });
     if (!r.ok) { list.innerHTML = leadsMsg('No se pudo leer leads (Supabase '+r.status+'). ¿Ya corriste el SQL de permisos?'); return; }
@@ -2026,6 +2038,7 @@ function leadCard(l){
       <span style="flex-shrink:0;background:var(--vlt-glow);color:var(--vlt2);font-size:12px;font-family:'DM Mono',monospace;padding:5px 10px;border-radius:20px;white-space:nowrap">${escLead(l.rubro||'')}</span>
     </div>
     <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
+      ${leadContactBtn(l, guionFor(l))}
       <a href="${mapsUrl}" target="_blank" rel="noopener" style="background:var(--bg2);border:1px solid var(--border);color:var(--txt1);border-radius:10px;padding:9px 14px;font-size:14px;text-decoration:none">📍 Ver en Maps</a>
       <button onclick="marcarContactado('${pid}', ${contactado?'false':'true'})" style="background:${contactado?'var(--bg2)':'linear-gradient(135deg,var(--vlt),var(--vlt2))'};color:${contactado?'var(--txt3)':'#fff'};border:1px solid ${contactado?'var(--border)':'transparent'};border-radius:10px;padding:9px 16px;font-size:14px;cursor:pointer;font-weight:600">${contactado?'↩ Sin contactar':'✓ Marcar contactado'}</button>
     </div>
@@ -2095,6 +2108,7 @@ function renderTop5(){
         </div>
         <div style="font-size:13px;color:var(--txt2);background:var(--bg0);border:1px solid var(--border);border-radius:9px;padding:9px 11px;margin:9px 0;line-height:1.45">${escLead(t.guion)}</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
+          ${leadContactBtn(t.lead, t.guion, 'sm')}
           <button onclick="copiarGuion(${i}, this)" style="background:linear-gradient(135deg,var(--vlt),var(--vlt2));color:#fff;border:none;border-radius:9px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer">📋 Copiar guion</button>
           <button onclick="marcarContactado('${escLead(t.lead.place_id)}', true)" style="background:var(--bg2);color:var(--txt2);border:1px solid var(--border);border-radius:9px;padding:8px 14px;font-size:13px;cursor:pointer">✓ Contactado</button>
         </div>

@@ -312,14 +312,14 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
           <div class="dash-kpi-value" id="kpi-tasks" style="color:var(--orange)">0</div>
           <div class="dash-kpi-sub" id="kpi-tasks-sub">pendientes</div>
         </div>
-        <div class="dash-kpi" onclick="setPage('marketing')">
-          <div class="dash-kpi-top">
-            <div class="dash-kpi-label">Publicadas</div>
-            <svg class="dash-kpi-icon" width="16" height="16" viewBox="0 0 24 24" fill="var(--vlt2)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
-          </div>
-          <div class="dash-kpi-value" id="kpi-published" style="color:var(--vlt2)">0</div>
-          <div class="dash-kpi-sub">piezas</div>
-        </div>
+      </div>
+
+      <!-- HOY: reuniones + seguimientos del día (lo primero que importa) -->
+      <div class="card" id="hoy-focus-card" style="margin-bottom:12px;border-color:rgba(34,211,238,.18)">
+        <div class="sec-label">🗓 Hoy</div>
+        <div id="hoy-reuniones"></div>
+        <div id="hoy-followups"></div>
+        <div id="hoy-empty" style="display:none;font-size:14px;color:var(--txt3);padding:6px 2px">Sin reuniones ni seguimientos para hoy.</div>
       </div>
 
       <!-- Centro de Control -->
@@ -330,13 +330,6 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
         </div>
         <div id="cc-attention" style="display:flex;flex-direction:column;gap:6px;margin:6px 0"></div>
         <div id="cc-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px"></div>
-      </div>
-
-      <!-- Ingresos mes a mes -->
-      <div class="card" style="margin-bottom:12px">
-        <div class="sec-label">Ingresos mes a mes</div>
-        <svg id="dash-mrr-svg" width="100%" height="88" viewBox="0 0 320 88" preserveAspectRatio="none" style="display:block;margin:4px 0"></svg>
-        <div id="dash-mrr-labels" style="display:flex;justify-content:space-between"></div>
       </div>
 
       <!-- Objetivos del mes -->
@@ -372,12 +365,6 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
         <div id="dash-top-clients"><div style="font-size:12px;color:var(--txt3)">Sin clientes activos</div></div>
       </div>
 
-      <!-- Pipeline por etapa -->
-      <div class="card" style="margin-bottom:12px">
-        <div class="sec-label">Pipeline por etapa</div>
-        <div id="dash-pipeline-stages"><div style="font-size:12px;color:var(--txt3)">Sin prospectos</div></div>
-      </div>
-
       <!-- Acciones rápidas (4) -->
       <div class="qa-grid" style="margin-bottom:12px">
         <div class="qa-btn" onclick="quickAction('task')"><div class="qa-icon">✅</div><div class="qa-label">Tarea</div></div>
@@ -392,7 +379,7 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
       <!-- Brief del día -->
       <div id="morning-brief" class="card" style="border-color:rgba(124,58,237,.2);background:linear-gradient(135deg,rgba(124,58,237,.06),rgba(168,85,247,.02));margin-bottom:12px">
         <div class="sec-label">Brief del día</div>
-        <div id="brief-content" style="font-size:13px;line-height:1.8;color:var(--txt2)">Cargando...</div>
+        <div id="brief-content" style="font-size:15px;line-height:1.85;color:var(--txt2)">Cargando...</div>
       </div>
 
       <!-- Agenda de hoy -->
@@ -1519,12 +1506,23 @@ Puedo generarte copy listo para usar, ideas de reels, análisis de qué funciona
           <select id="pip-stage">
             <option value="prospecto">Prospecto</option>
             <option value="contactado">Contactado</option>
+            <option value="respondio">Respondió</option>
+            <option value="reunion_agendada">Reunión agendada</option>
+            <option value="reunion_confirmada">Reunión confirmada ✅</option>
             <option value="propuesta">Propuesta</option>
             <option value="negociacion">Negociación</option>
             <option value="cerrado">Cerrado ✅</option>
             <option value="perdido">Perdido ❌</option>
           </select>
         </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button type="button" class="btn btn-ghost btn-sm" style="flex:1" onclick="setPipMeeting('reunion_agendada')">📅 Agendé reunión</button>
+        <button type="button" class="btn btn-ghost btn-sm" style="flex:1" onclick="setPipMeeting('reunion_confirmada')">✅ Confirmó</button>
+      </div>
+      <div class="grid2" style="gap:8px;margin-top:12px">
+        <div class="field" style="margin:0"><label>Próximo paso</label><input type="text" id="pip-nextstep" placeholder="ej: llamar, mandar propuesta"></div>
+        <div class="field" style="margin:0"><label>¿Cuándo?</label><input type="date" id="pip-nextdate"></div>
       </div>
       <div class="field" style="margin-top:12px"><label>Contacto</label><input type="text" id="pip-contact" placeholder="Nombre, teléfono o email"></div>
       <div class="field"><label>Notas</label><textarea id="pip-notes" style="min-height:60px"></textarea></div>
@@ -2060,8 +2058,28 @@ function leadCard(l){
       ${leadContactBtn(l, guionFor(l))}
       <a href="${mapsUrl}" target="_blank" rel="noopener" style="background:var(--bg2);border:1px solid var(--border);color:var(--txt1);border-radius:10px;padding:9px 14px;font-size:14px;text-decoration:none">📍 Ver en Maps</a>
       <button onclick="marcarContactado('${pid}', ${contactado?'false':'true'})" style="background:${contactado?'var(--bg2)':'linear-gradient(135deg,var(--vlt),var(--vlt2))'};color:${contactado?'var(--txt3)':'#fff'};border:1px solid ${contactado?'var(--border)':'transparent'};border-radius:10px;padding:9px 16px;font-size:14px;cursor:pointer;font-weight:600">${contactado?'↩ Sin contactar':'✓ Marcar contactado'}</button>
+      <button onclick="promoteLeadToPipeline('${pid}')" style="background:var(--bg2);border:1px solid var(--border);color:var(--txt1);border-radius:10px;padding:9px 14px;font-size:14px;cursor:pointer;font-weight:600">🎯 A prospecto</button>
     </div>
   </div>`;
+}
+// Puente leads → embudo: convierte un lead en prospecto del pipeline (sin duplicar) y lo marca contactado.
+function promoteLeadToPipeline(placeId){
+  const l = (LEADS_ALL||[]).find(x=>x.place_id===placeId);
+  if(!l){ notify('No encontré ese lead'); return; }
+  const existing = (D.pipeline||[]).find(p=>p.sourceLeadId===placeId);
+  if(existing){ setPage('pipeline'); setTimeout(()=>{ fillPipeline(existing.id); openModal('modal-pipeline'); },260); notify('Ya estaba en el embudo — te lo abro'); return; }
+  const wa = leadWaNumber(l.phone);
+  const contacto = wa ? ('+'+wa) : (l.phone || l.email || '');
+  const p = { id:uid(), name:l.company_name||'(sin nombre)', service:'', sector:l.rubro||'', value:'', stage:'contactado', nextStep:'Hacer seguimiento', nextDate:todayStr(), contact:contacto, notes:l.notes||'', sourceLeadId:placeId, updatedAt:todayStr() };
+  D.pipeline.unshift(p);
+  const set = leadsContactSet();
+  if(set.indexOf(placeId)<0){ set.push(placeId); persistContactado(placeId); }
+  save();
+  if(typeof renderTop5==='function') renderTop5();
+  if(typeof applyLeadFilter==='function') applyLeadFilter();
+  notify('🎯 '+(l.company_name||'Lead')+' pasó a prospecto. Completá valor y servicio.');
+  setPage('pipeline');
+  setTimeout(()=>{ fillPipeline(p.id); openModal('modal-pipeline'); }, 280);
 }
 
 function marcarContactado(placeId, contactar){
@@ -2328,6 +2346,43 @@ function renderRadar() {
     }).join('');
 }
 
+// ── HOY: reuniones + seguimientos del día ─────────
+function renderHoyFocus(){
+  const card=document.getElementById('hoy-focus-card'); if(!card) return;
+  const today=todayStr();
+  const pipe=D.pipeline||[];
+  const reuns=pipe.filter(p=>(p.stage==='reunion_agendada'||p.stage==='reunion_confirmada') && p.nextDate===today);
+  const fups=pipe.filter(p=>p.nextDate && p.nextDate<=today && p.stage!=='cerrado' && p.stage!=='perdido' && reuns.indexOf(p)<0);
+  const open="setPage('pipeline');setTimeout(()=>{fillPipeline('";
+  const rEl=document.getElementById('hoy-reuniones');
+  const fEl=document.getElementById('hoy-followups');
+  const eEl=document.getElementById('hoy-empty');
+  rEl.innerHTML = reuns.length ? `<div style="font-size:12px;color:var(--txt3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin:2px 0 6px">Reuniones de hoy</div>`+
+    reuns.map(p=>{
+      const ok=p.stage==='reunion_confirmada';
+      return `<div class="list-item" style="cursor:pointer;border-color:${ok?'rgba(34,211,238,.3)':'rgba(245,158,11,.3)'}" onclick="${open}${p.id}');openModal('modal-pipeline')},220)">
+        <span style="font-size:20px">${ok?'✅':'⏳'}</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:15px;font-weight:700">${escLead(p.name)}</div>
+          <div style="font-size:12.5px;color:${ok?'#22d3ee':'var(--orange)'};font-weight:600">${ok?'Confirmada':'Sin confirmar'}${p.contact?' · '+escLead(p.contact):''}</div>
+        </div>
+      </div>`;
+    }).join('') : '';
+  fEl.innerHTML = fups.length ? `<div style="font-size:12px;color:var(--txt3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin:10px 0 6px">Seguimientos para hoy</div>`+
+    fups.map(p=>{
+      const overdue=p.nextDate<today;
+      return `<div class="list-item" style="cursor:pointer" onclick="${open}${p.id}');openModal('modal-pipeline')},220)">
+        <span style="font-size:18px">📌</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:14.5px;font-weight:700">${escLead(p.name)}</div>
+          <div style="font-size:12.5px;color:var(--txt3)">${escLead(p.nextStep||'Seguir')} · ${p.stage}</div>
+        </div>
+        <span style="font-size:11px;color:${overdue?'var(--red)':'var(--orange)'};font-family:'DM Mono',monospace;font-weight:700">${overdue?'vencido':'hoy'}</span>
+      </div>`;
+    }).join('') : '';
+  eEl.style.display = (reuns.length||fups.length) ? 'none' : 'block';
+}
+
 // ── COMANDO RENDER ────────────────────────────────
 // ── DASHBOARD HELPERS ─────────────────────────────
 function getDashMrrMonthly() {
@@ -2465,7 +2520,6 @@ function renderComando() {
   const pipeline=D.pipeline.filter(p=>p.stage!=='cerrado'&&p.stage!=='perdido');
   const pipelineVal=pipeline.reduce((s,p)=>s+(Number(p.value)||0),0);
   const pendingTasks=D.tasks.filter(t=>!t.done);
-  const published=Object.values(D.mktStatus||{}).filter(v=>v==='publicada').length;
   document.getElementById('kpi-mrr').textContent='$'+mrr.toLocaleString();
   document.getElementById('kpi-mrr-sub').textContent=clients.length+' cliente'+(clients.length!==1?'s':'')+' activo'+(clients.length!==1?'s':'');
   document.getElementById('kpi-pipeline').textContent='$'+pipelineVal.toLocaleString();
@@ -2474,11 +2528,9 @@ function renderComando() {
   document.getElementById('kpi-clients-sub').textContent=mrr>0?'$'+mrr.toLocaleString()+'/mes':'sin MRR';
   document.getElementById('kpi-tasks').textContent=pendingTasks.length;
   document.getElementById('kpi-tasks-sub').textContent=pendingTasks.filter(t=>t.due===todayStr()).length+' para hoy';
-  document.getElementById('kpi-published').textContent=published;
-  renderDashMrrChart();
+  renderHoyFocus();
   renderDashGoals(mrr);
   renderDashTopClients(clients);
-  renderDashPipelineStages();
 }
 function getWeekSeconds() {
   const now=new Date(); const monday=new Date(now);
@@ -2494,6 +2546,9 @@ function getWeekSeconds() {
 const STAGES=[
   {key:'prospecto',label:'Prospecto',color:'var(--txt3)'},
   {key:'contactado',label:'Contactado',color:'var(--blue)'},
+  {key:'respondio',label:'Respondió',color:'#38bdf8'},
+  {key:'reunion_agendada',label:'Reunión agendada',color:'var(--orange)'},
+  {key:'reunion_confirmada',label:'Reunión confirmada ✅',color:'#22d3ee'},
   {key:'propuesta',label:'Propuesta',color:'var(--orange)'},
   {key:'negociacion',label:'Negociación',color:'var(--yellow)'},
   {key:'cerrado',label:'Cerrado ✅',color:'var(--green)'},
@@ -2535,28 +2590,44 @@ function fillPipeline(id) {
   document.getElementById('pip-sector').value=p.sector||'';
   document.getElementById('pip-value').value=p.value||'';
   document.getElementById('pip-stage').value=p.stage||'prospecto';
+  document.getElementById('pip-nextstep').value=p.nextStep||'';
+  document.getElementById('pip-nextdate').value=p.nextDate||'';
   document.getElementById('pip-contact').value=p.contact||'';
   document.getElementById('pip-notes').value=p.notes||'';
   document.getElementById('modal-pipeline-title').textContent='Editar prospecto';
 }
+// Botones rápidos de reunión: marcan la etapa y, si no hay fecha, ponen hoy + un próximo paso por defecto.
+function setPipMeeting(stage){
+  document.getElementById('pip-stage').value=stage;
+  const nd=document.getElementById('pip-nextdate');
+  if(nd && !nd.value) nd.value=todayStr();
+  const ns=document.getElementById('pip-nextstep');
+  if(ns && !ns.value) ns.value = stage==='reunion_confirmada' ? 'Tener la reunión' : 'Confirmar la reunión';
+  notify(stage==='reunion_confirmada' ? '✅ Marcado: reunión confirmada — dale Guardar' : '📅 Marcado: reunión agendada — dale Guardar');
+}
 function savePipeline() {
   const id=document.getElementById('pip-edit-id').value||uid();
   const idx=D.pipeline.findIndex(p=>p.id===id);
+  const prev=idx>=0?D.pipeline[idx]:null;
   const obj={id,name:document.getElementById('pip-name').value.trim(),
     service:document.getElementById('pip-service').value,
     sector:document.getElementById('pip-sector').value,
     value:document.getElementById('pip-value').value,
     stage:document.getElementById('pip-stage').value,
+    nextStep:document.getElementById('pip-nextstep').value.trim(),
+    nextDate:document.getElementById('pip-nextdate').value,
     contact:document.getElementById('pip-contact').value,
     notes:document.getElementById('pip-notes').value,
+    sourceLeadId:prev?prev.sourceLeadId:undefined,
     updatedAt:todayStr()};
   if(!obj.name) return notify('Ponele un nombre al prospecto');
   if(idx>=0) D.pipeline[idx]=obj; else D.pipeline.unshift(obj);
   save(); closeModal('modal-pipeline'); renderPipeline();
   initClientSelectors(); notify('✅ Prospecto guardado');
+  if(currentPage==='comando') renderHoyFocus();
   document.getElementById('pip-edit-id').value='';
   document.getElementById('modal-pipeline-title').textContent='Nuevo prospecto';
-  ['pip-name','pip-service','pip-sector','pip-value','pip-contact','pip-notes'].forEach(id=>document.getElementById(id).value='');
+  ['pip-name','pip-service','pip-sector','pip-value','pip-nextstep','pip-nextdate','pip-contact','pip-notes'].forEach(id=>document.getElementById(id).value='');
 }
 
 // ── CLIENTS ───────────────────────────────────────

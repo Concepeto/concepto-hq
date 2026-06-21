@@ -678,8 +678,14 @@ Decime qué querés lograr — no me cuentes el proceso, contame el objetivo. Yo
       <!-- ══ VIDEOS TAB ══ -->
       <div id="cont-videos" style="display:none">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-          <div class="sec-label" style="margin:0">Videos para aprobar</div>
+          <div class="sec-label" style="margin:0">Videos</div>
           <button class="btn btn-ghost btn-sm" onclick="loadVideos()">↻ Actualizar</button>
+        </div>
+        <div id="videos-cat-filter" style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap">
+          <div class="chip active" onclick="filterVideosCat('all',this)">Todas</div>
+          <div class="chip" onclick="filterVideosCat('contenido',this)">📺 Contenido</div>
+          <div class="chip" onclick="filterVideosCat('marca',this)">🎬 Marca / Anuncios</div>
+          <div class="chip" onclick="filterVideosCat('sistema',this)">🧪 Sistema / Demos</div>
         </div>
         <div id="videos-filter" style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
           <div class="chip" onclick="filterVideos('pending_approval',this)">⏳ Para decidir</div>
@@ -4799,7 +4805,25 @@ const SB_VIDEOS_HEADERS = {
 };
 
 let videosCurrentFilter = 'all';
+let videosCurrentCat = 'all';
 let videosData = [];
+
+// Clasificación por categoría (espejo del sync). Default = contenido.
+const VIDEO_CAT_MARCA = new Set(['Reel-NegocioSinVos','Reel-MAX-Apple-v2','Anuncio-MAX-Hero','Anuncio-A-house','Anuncio-Competencia','Doc-MAX-Responde','Premium-PerdidaSilenciosa','Dashboard-AhoraSabes','ConceptoHQ']);
+const VIDEO_CAT_SISTEMA = new Set(['Sis-Automatizacion','IPhoneNotis','CapaAShowcase','FlowStyle','MotionLab','HologramPhone','IPhoneCine','WakeUp','WakeUp_cine']);
+function videoCategory(v){
+  const n = v.name || '';
+  if (VIDEO_CAT_MARCA.has(n)) return 'marca';
+  if (VIDEO_CAT_SISTEMA.has(n)) return 'sistema';
+  return 'contenido';
+}
+const VIDEO_CAT_LABEL = { contenido:'📺 Contenido', marca:'🎬 Marca', sistema:'🧪 Sistema' };
+// Poster (miniatura) derivado del storage_url: /videos/X.mp4 -> /videos/posters/X.jpg
+function videoPoster(v){
+  const u = v.storage_url || '';
+  if(!u) return '';
+  return u.replace('/videos/','/videos/posters/').replace(/\.mp4$/i,'.jpg');
+}
 
 async function loadVideos() {
   const grid = document.getElementById('videos-grid');
@@ -4824,16 +4848,25 @@ function filterVideos(f, el) {
   loadVideos();
 }
 
+function filterVideosCat(c, el) {
+  videosCurrentCat = c;
+  document.querySelectorAll('#videos-cat-filter .chip').forEach(x => x.classList.remove('active'));
+  if (el) el.classList.add('active');
+  renderVideosGrid();
+}
+
 function renderVideosGrid() {
   const grid = document.getElementById('videos-grid');
   const empty = document.getElementById('videos-empty');
-  if (!videosData || videosData.length === 0) {
+  let list = videosData || [];
+  if (videosCurrentCat !== 'all') list = list.filter(v => videoCategory(v) === videosCurrentCat);
+  if (!list.length) {
     grid.innerHTML = '';
     empty.style.display = 'block';
     return;
   }
   empty.style.display = 'none';
-  grid.innerHTML = videosData.map(v => videoCard(v)).join('');
+  grid.innerHTML = list.map(v => videoCard(v)).join('');
 }
 
 function videoCard(v) {
@@ -4853,12 +4886,14 @@ function videoCard(v) {
   const safeUrl = (v.storage_url || '').replace(/'/g, "\\'");
   const safeName = (v.name || '').replace(/'/g, "\\'");
   const safeLabel = statusLabel.replace(/'/g, "\\'");
+  const poster = videoPoster(v);
+  const cat = videoCategory(v);
 
   return `<div class="card-sm" style="padding:10px;position:relative" id="vcard-${v.id}">
     <div style="position:relative;border-radius:8px;overflow:hidden;background:#111;aspect-ratio:9/16;margin-bottom:8px;cursor:pointer"
          onclick="openVideoFullscreen('${safeUrl}','${safeName}','${safeLabel}')">
       ${v.storage_url
-        ? `<video src="${v.storage_url}" style="width:100%;height:100%;object-fit:cover" preload="metadata" playsinline
+        ? `<video src="${v.storage_url}#t=0.1" ${poster ? `poster="${poster}"` : ''} style="width:100%;height:100%;object-fit:cover" preload="metadata" muted playsinline
                onerror="this.style.display='none'"></video>
            <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">
              <div style="background:rgba(0,0,0,.55);backdrop-filter:blur(2px);border-radius:50%;width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-size:22px;line-height:1">▶</div>
@@ -4866,6 +4901,7 @@ function videoCard(v) {
         : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--txt3);font-size:11px">Sin video</div>`
       }
       <div style="position:absolute;top:6px;left:6px;background:rgba(0,0,0,.75);border-radius:4px;padding:2px 7px;font-size:10px;font-family:'DM Mono',monospace;color:${statusColor}">${statusLabel}</div>
+      <div style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.75);border-radius:4px;padding:2px 7px;font-size:10px;font-family:'DM Mono',monospace;color:var(--txt2)">${VIDEO_CAT_LABEL[cat]||''}</div>
     </div>
     <div style="font-size:12px;font-weight:700;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${v.name}</div>
     <div style="font-size:10px;color:var(--txt3);font-family:'DM Mono',monospace;margin-bottom:8px">${v.mechanism||''} · ${v.lever||''}</div>

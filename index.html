@@ -1972,10 +1972,20 @@ let LEADS_ALL = [];
 function escLead(s){ return String(s==null?'':s).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 function leadsMsg(t){ return '<div style="text-align:center;color:var(--txt3);padding:36px 16px;font-size:15px;line-height:1.6;border:1px dashed var(--border);border-radius:14px">'+escLead(t)+'</div>'; }
 function leadsContactSet(){ if(!Array.isArray(D.leadsContacted)) D.leadsContacted=[]; return D.leadsContacted; }
-function isLeadContactado(l){ return leadsContactSet().indexOf(l.place_id) >= 0; }
+// Contactado = marcado local (instantáneo) O ya registrado en la base por cualquier canal (mail/whatsapp).
+function isLeadContactado(l){ return leadsContactSet().indexOf(l.place_id) >= 0 || !!l.contacted_at; }
+// Webhook seguro que persiste "contactado" en la base, para que el mail (n8n) también lo respete.
+function persistContactado(placeId){
+  try {
+    const u = 'https://n8nconcepto-u74817.vm.elestio.app/webhook/hq-mark-contacted?t=cd-hq-mk-2026&place_id=' + encodeURIComponent(placeId);
+    fetch(u, { method: 'GET', mode: 'no-cors', keepalive: true });
+  } catch(e) {}
+}
 // Teléfono UY → número WhatsApp internacional. Solo celulares (09X, 9 dígitos) tienen WhatsApp.
 function leadPhoneDigits(p){ return String(p==null?'':p).replace(/\D/g,''); }
 function leadWaNumber(p){ const n=leadPhoneDigits(p); return (n.startsWith('09') && n.length===9) ? ('598'+n.slice(1)) : null; }
+// Prioridad de canal: WhatsApp (0) > Mail (1) > Llamar/fijo (2) > Sin contacto (3).
+function leadChannelRank(l){ if (leadWaNumber(l.phone)) return 0; if (l.email) return 1; if (l.phone) return 2; return 3; }
 // Botón de contacto: WhatsApp con el guion pre-cargado si es celular; si es fijo, link para llamar.
 function leadContactBtn(l, guion, sz){
   const big = sz!=='sm';
@@ -1993,7 +2003,7 @@ async function loadLeads() {
   list.innerHTML = '<div style="text-align:center;color:var(--txt3);padding:40px 0;font-size:15px">Cargando leads…</div>';
   if (cnt) cnt.textContent = '';
   try {
-    const r = await fetch(`${SB_URL}/rest/v1/leads?select=id,company_name,rubro,status,score,notes,created_at,place_id,phone,website&order=created_at.desc&limit=400`, {
+    const r = await fetch(`${SB_URL}/rest/v1/leads?select=id,company_name,rubro,status,score,notes,created_at,place_id,phone,website,contacted_at,drafted_at&order=created_at.desc&limit=400`, {
       headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
     });
     if (!r.ok) { list.innerHTML = leadsMsg('No se pudo leer leads (Supabase '+r.status+'). ¿Ya corriste el SQL de permisos?'); return; }
@@ -2026,6 +2036,8 @@ function applyLeadFilter(){
   if (rubro) rows = rows.filter(l=>l.rubro===rubro);
   if (status==='nuevo') rows = rows.filter(l=>!isLeadContactado(l));
   else if (status==='contactado') rows = rows.filter(l=>isLeadContactado(l));
+  // Orden por canal: WhatsApp arriba, despues mail, despues llamar, despues nada; dentro de cada uno por score.
+  rows.sort((a,b)=> leadChannelRank(a)-leadChannelRank(b) || leadScore(b)-leadScore(a));
   if (cnt) cnt.textContent = rows.length + ' / ' + LEADS_ALL.length + ' empresas';
   if (!rows.length){ list.innerHTML = leadsMsg(LEADS_ALL.length ? 'No hay leads con ese filtro.' : 'Todavía no hay leads. El motor carga empresas nuevas cada mañana a las 8.'); return; }
   list.innerHTML = rows.map(leadCard).join('');
@@ -2040,6 +2052,7 @@ function leadCard(l){
       <div style="min-width:0">
         <div style="font-size:18px;font-weight:700;line-height:1.25;color:var(--txt1)">${escLead(l.company_name)}</div>
         <div style="font-size:13.5px;color:var(--txt3);margin-top:5px;line-height:1.5">${escLead(l.notes||'')}</div>
+        ${l.drafted_at ? '<div style="margin-top:6px;font-size:12.5px;color:#60a5fa">✉️ Ya tiene borrador de mail</div>' : ''}
       </div>
       <span style="flex-shrink:0;background:var(--vlt-glow);color:var(--vlt2);font-size:12px;font-family:'DM Mono',monospace;padding:5px 10px;border-radius:20px;white-space:nowrap">${escLead(l.rubro||'')}</span>
     </div>
@@ -2054,7 +2067,7 @@ function leadCard(l){
 function marcarContactado(placeId, contactar){
   const set = leadsContactSet();
   const i = set.indexOf(placeId);
-  if (contactar && i < 0) set.push(placeId);
+  if (contactar && i < 0) { set.push(placeId); persistContactado(placeId); }
   else if (!contactar && i >= 0) set.splice(i, 1);
   if (typeof save === 'function') save();   // sincroniza a hq_data (privado)
   renderTop5();
@@ -2083,7 +2096,8 @@ function guionFor(l){
   return `Hola, ¿cómo andan? Los encontré en Google y vi que tienen buena reputación. Trabajo con empresas del rubro ${rubroTxt} en Uruguay ayudándolas a no perder clientes por no responder a tiempo: un asistente que atiende las consultas al toque, 24/7. ¿Les muestro en 2 minutos cómo quedaría para ${l.company_name}?`;
 }
 function computeTop5(){
-  const candidatos = LEADS_ALL.filter(l => !isLeadContactado(l))
+  // Condicion del Top 5: SOLO leads con WhatsApp (celular). Son los prioritarios.
+  const candidatos = LEADS_ALL.filter(l => !isLeadContactado(l) && !l.drafted_at && leadWaNumber(l.phone))
     .map(l => ({ l, score: leadScore(l) }))
     .sort((a,b) => b.score - a.score);
   // Diversidad: máximo 2 por rubro, hasta llegar a 5.

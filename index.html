@@ -900,7 +900,13 @@ Decime qué querés lograr — no me cuentes el proceso, contame el objetivo. Yo
 
     <!-- ═══════════════ INFRAESTRUCTURA ═══════════════ -->
     <div id="page-infra" class="page">
-      <div class="page-title">Proyectos</div>
+      <div class="page-title">Máquina</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:10px">
+        <div style="font-size:13px;color:var(--txt3)">Salud del sistema en vivo. Tocá un chequeo para ver el detalle.</div>
+        <button class="btn btn-ghost btn-sm" style="flex-shrink:0" onclick="renderMaquina()">↻ Actualizar</button>
+      </div>
+      <div id="maquina-health"><div style="color:var(--txt3);font-size:12px">Cargando estado…</div></div>
+      <div class="sec-label" style="margin-top:18px">📁 Proyectos</div>
       <div style="font-size:13px;color:var(--txt3);margin-bottom:12px">Cada proyecto: dónde vive y botón para entrar.</div>
       <div id="infra-list"></div>
       <div class="sec-label" style="margin-top:18px">🔑 Cuentas (dónde está cada cosa)</div>
@@ -1434,7 +1440,7 @@ Puedo generarte copy listo para usar, ideas de reels, análisis de qué funciona
       </div>
       <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--txt3);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Sistema</div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:4px">
-        <button class="qa-btn" style="background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(168,85,247,.08));border:1px solid rgba(124,58,237,.3);border-radius:12px;padding:12px 8px" onclick="goToPage('infra')"><div class="qa-icon">📁</div><div class="qa-label" style="color:var(--vlt2)">Proyectos</div></button>
+        <button class="qa-btn" style="background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(168,85,247,.08));border:1px solid rgba(124,58,237,.3);border-radius:12px;padding:12px 8px" onclick="goToPage('infra')"><div class="qa-icon">🖥️</div><div class="qa-label" style="color:var(--vlt2)">Máquina</div></button>
         <button class="qa-btn" style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px 8px" onclick="goToPage('vault')"><div class="qa-icon">🔒</div><div class="qa-label">Bóveda</div></button>
         <button class="qa-btn" style="background:linear-gradient(135deg,rgba(124,58,237,.18),rgba(168,85,247,.08));border:1px solid rgba(124,58,237,.35);border-radius:12px;padding:12px 8px" onclick="window.open('https://concepto-agentes.vercel.app','_blank')"><div class="qa-icon">🧠</div><div class="qa-label" style="color:var(--vlt2)">Agentes</div></button>
       </div>
@@ -1959,7 +1965,7 @@ function renderPage(p) {
   else if(p==='instagram') loadInstagramPage();
   else if(p==='vault') renderVault();
   else if(p==='clientdetail') renderClientDetail();
-  else if(p==='infra') renderInfra();
+  else if(p==='infra') renderMaquina();
   else if(p==='leads') loadLeads();
 }
 // ═══════════════ LEADS (#43) — motor de prospección ═══════════════
@@ -2508,6 +2514,31 @@ async function renderCentroControl() {
   } catch(e){ grid.innerHTML='<div style="color:var(--txt2);font-size:12px">No se pudo leer el estado del sistema.</div>'; }
 }
 setInterval(()=>{ if(currentPage==='comando') renderCentroControl(); }, 60000);
+async function renderMaquina() {
+  renderInfra();
+  const host=document.getElementById('maquina-health'); if(!host) return;
+  const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+  const COL={verde:'var(--green)',rojo:'var(--red)',amarillo:'var(--orange)',gris:'var(--txt3)'};
+  const LBL={rojo:'🔴 Caídos',amarillo:'🟡 Alerta',gris:'⚪ Sin datos',verde:'🟢 OK'};
+  const fecha=t=>{ if(!t) return '—'; try{ return new Date(t).toLocaleString('es-UY',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); }catch(e){ return '—'; } };
+  host.innerHTML='<div style="color:var(--txt3);font-size:12px">Cargando estado…</div>';
+  try {
+    const r=await fetch(`${SB_URL}/rest/v1/estado_sistema?select=*&order=orden.asc`,{headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`}});
+    const rows=await r.json();
+    if(!Array.isArray(rows)||!rows.length){ host.innerHTML='<div style="color:var(--txt2);font-size:12px">Sin datos del sistema todavía. Los chequeos los escribe n8n.</div>'; return; }
+    const c={verde:0,rojo:0,amarillo:0,gris:0}; rows.forEach(x=>{c[x.estado]=(c[x.estado]||0)+1;});
+    let html=`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px"><span class="tag tag-green">🟢 ${c.verde} OK</span><span class="tag tag-red">🔴 ${c.rojo} caídos</span><span class="tag tag-orange">🟡 ${c.amarillo} alerta</span><span class="tag" style="background:#26263a;color:var(--txt2)">⚪ ${c.gris} sin datos</span></div>`;
+    ['rojo','amarillo','gris','verde'].forEach(st=>{
+      const items=rows.filter(x=>x.estado===st); if(!items.length) return;
+      html+=`<div class="sec-label" style="margin-top:12px">${LBL[st]} · ${items.length}</div>`;
+      items.forEach((x,i)=>{
+        const uid='ms-'+st+'-'+i;
+        html+=`<div class="card" style="margin-bottom:8px;cursor:pointer;border-left:3px solid ${COL[x.estado]||'var(--txt3)'}" onclick="var d=document.getElementById('${uid}');d.style.display=(d.style.display==='none'?'block':'none')"><div style="display:flex;align-items:center;gap:10px"><span style="width:10px;height:10px;border-radius:50%;background:${COL[x.estado]||'var(--txt3)'};flex-shrink:0"></span><span style="font-size:14px;font-weight:600;color:var(--txt1)">${esc(x.nombre)}</span><span style="font-size:12px;color:var(--txt3);margin-left:auto;text-align:right">${esc(x.mensaje||'')}</span></div><div id="${uid}" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:12px;color:var(--txt2);line-height:1.7"><div><b style="color:var(--txt3)">Tipo:</b> ${esc(x.tipo||'—')}</div><div><b style="color:var(--txt3)">Mensaje:</b> ${esc(x.mensaje||'—')}</div><div><b style="color:var(--txt3)">Último chequeo:</b> ${fecha(x.ultimo_check)}</div><div><b style="color:var(--txt3)">Último OK:</b> ${fecha(x.ultimo_ok)}</div></div></div>`;
+      });
+    });
+    host.innerHTML=html;
+  } catch(e){ host.innerHTML='<div style="color:var(--txt2);font-size:12px">No se pudo leer el estado del sistema.</div>'; }
+}
 function renderComando() {
   buildBrief();
   renderAlerts();

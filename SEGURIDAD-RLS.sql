@@ -58,31 +58,21 @@ create policy "hq_data solo autenticado"
 --     (La Service Role IGNORA el RLS, así que si la usa, no se rompe nada.)
 -- ============================================================
 
--- Borra todas las policies actuales de leads (incluida la de lectura anónima)
-do $$
-declare pol record;
-begin
-  for pol in select policyname from pg_policies
-             where schemaname = 'public' and tablename = 'leads'
-  loop execute format('drop policy %I on public.leads', pol.policyname); end loop;
-end $$;
+-- VERSIÓN REAL APLICADA (22-jun): el diagnóstico mostró que leads ya tenía RLS
+-- con UNA sola policy `hq_lee_leads` (SELECT para {anon, authenticated}) y NINGUNA
+-- de escritura → n8n carga leads con Service Role (ignora el RLS). Así que el fix
+-- es quirúrgico: solo sacarle `anon` a la lectura. La app SOLO lee leads (el
+-- "contactado" se guarda en hq_data, ya protegido), por eso no hace falta UPDATE.
 
-alter table public.leads enable row level security;
+alter table public.leads enable row level security;  -- idempotente
 
--- La app lee leads ya logueada → permitir SELECT a autenticados
-create policy "leads leer autenticado"
+drop policy "hq_lee_leads" on public.leads;
+
+create policy "hq_lee_leads"
   on public.leads
   for select
   to authenticated
   using (true);
-
--- La app también marca "contactado/borrador" → permitir UPDATE a autenticados
-create policy "leads actualizar autenticado"
-  on public.leads
-  for update
-  to authenticated
-  using (true)
-  with check (true);
 
 -- (n8n inserta leads con Service Role → no necesita policy, ignora el RLS.)
 

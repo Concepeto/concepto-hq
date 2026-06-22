@@ -652,18 +652,18 @@ Decime qué querés lograr — no me cuentes el proceso, contame el objetivo. Yo
 
     <!-- ═══════════════ CONTENIDO ═══════════════ -->
     <div id="page-contenido" class="page">
-      <div class="page-title">Contenido</div>
+      <div class="page-title">Marketing</div>
       <div class="subnav">
-        <div class="chip" onclick="setContenidoTab('videos',this)">📺 Videos</div>
-        <div class="chip" onclick="setContenidoTab('metricas',this)">📊 Métricas</div>
-        <div class="chip active" onclick="setContenidoTab('scripts',this)">🎬 Scripts MAX</div>
-        <div class="chip" onclick="setContenidoTab('copy',this)">✍️ Copy Bank</div>
+        <div class="chip active" onclick="setContenidoTab('videos',this)">📚 Biblioteca</div>
+        <div class="chip" onclick="setContenidoTab('metricas',this)">📊 Resultados</div>
+        <div class="chip" onclick="setContenidoTab('scripts',this)">🎬 Producción</div>
+        <div class="chip" onclick="setContenidoTab('copy',this)">✍️ Copy</div>
         <div class="chip" onclick="setContenidoTab('calendar',this)">📅 Calendario</div>
         <div class="chip" onclick="setContenidoTab('prompts',this)">🤖 Prompts</div>
       </div>
 
       <!-- ══ VIDEOS TAB ══ -->
-      <div id="cont-videos" style="display:none">
+      <div id="cont-videos" style="display:block">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
           <div class="sec-label" style="margin:0">Videos</div>
           <button class="btn btn-ghost btn-sm" onclick="loadVideos()">↻ Actualizar</button>
@@ -702,7 +702,7 @@ Decime qué querés lograr — no me cuentes el proceso, contame el objetivo. Yo
         <div id="metricas-pauta" style="display:flex;flex-direction:column;gap:6px"></div>
       </div>
       <!-- Scripts tab -->
-      <div id="cont-scripts">
+      <div id="cont-scripts" style="display:none">
         <div class="card">
           <div class="sec-label">Generador de scripts MAX</div>
           <div class="field"><label>Tema / Producto</label><input type="text" id="script-topic" placeholder="ej: chatbot para hotelería"></div>
@@ -1369,7 +1369,7 @@ Puedo generarte copy listo para usar, ideas de reels, análisis de qué funciona
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
       Clientes
     </button>
-    <button class="nav-btn" id="nav-projects" onclick="setPage('marketing')">
+    <button class="nav-btn" id="nav-projects" onclick="setPage('contenido')">
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 11v2h4v-2h-4zm-1.17 7.83l2.41 1.81 1.2-1.6-2.41-1.81-1.2 1.6zM20.44 6.78l-1.2-1.6-2.41 1.81 1.2 1.6 2.41-1.81zM4 9c-1.1 0-2 .9-2 2v2c0 1.1.9 2 2 2h1v4h2v-4h1l5 3V6L8 9H4zm11.5 3c0-1.33-.58-2.53-1.5-3.35v6.69c.92-.81 1.5-2.01 1.5-3.34z"/></svg>
       Marketing
     </button>
@@ -1419,11 +1419,11 @@ Puedo generarte copy listo para usar, ideas de reels, análisis de qué funciona
         <button class="qa-btn" style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px 8px" onclick="goToPage('tasks')"><div class="qa-icon">✅</div><div class="qa-label">Tareas</div></button>
         <button class="qa-btn" style="background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(168,85,247,.08));border:1px solid rgba(124,58,237,.3);border-radius:12px;padding:12px 8px" onclick="goToPage('vault')"><div class="qa-icon">🔒</div><div class="qa-label" style="color:var(--vlt2)">Bóveda</div></button>
       </div>
-      <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--txt3);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Contenido</div>
+      <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--txt3);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Marketing</div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">
-        <button class="qa-btn" style="background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(168,85,247,.08));border:1px solid rgba(124,58,237,.3);border-radius:12px;padding:12px 8px" onclick="goToPage('contenido');setContenidoTab('videos',null);closeMoreMenu()"><div class="qa-icon">📺</div><div class="qa-label" style="color:var(--vlt2)">Videos</div></button>
-        <button class="qa-btn" style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px 8px" onclick="goToPage('contenido');closeMoreMenu()"><div class="qa-icon">🎬</div><div class="qa-label">Contenido</div></button>
-        <button class="qa-btn" style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px 8px" onclick="goToPage('marketing');closeMoreMenu()"><div class="qa-icon">📣</div><div class="qa-label">Marketing</div></button>
+        <button class="qa-btn" style="background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(168,85,247,.08));border:1px solid rgba(124,58,237,.3);border-radius:12px;padding:12px 8px" onclick="goToPage('contenido');closeMoreMenu()"><div class="qa-icon">📣</div><div class="qa-label" style="color:var(--vlt2)">Marketing</div></button>
+        <button class="qa-btn" style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px 8px" onclick="goToPage('contenido');setContenidoTab('videos',null);closeMoreMenu()"><div class="qa-icon">📚</div><div class="qa-label">Biblioteca</div></button>
+        <button class="qa-btn" style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px 8px" onclick="goToPage('contenido');setContenidoTab('metricas',null);closeMoreMenu()"><div class="qa-icon">📊</div><div class="qa-label">Resultados</div></button>
       </div>
       <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--txt3);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Ventas</div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">
@@ -1715,7 +1715,7 @@ let currentResFilter = 'all';
 let currentIdeasFilter = 'all';
 let currentTaskFilter = 'pending';
 let currentCalcTab = 'roi';
-let currentContTab = 'scripts';
+let currentContTab = 'videos';
 let pomoInterval = null; let pomoSecs = 25*60; let pomoRunning = false; let pomoPhaseType = 'TRABAJO';
 let timerInterval = null;
 let lastScript = '';
@@ -1950,7 +1950,7 @@ function renderPage(p) {
   else if(p==='goals') renderGoals();
   else if(p==='notes') initNotes();
   else if(p==='calc') { calcROI(); calcProfit(); initCalc(); }
-  else if(p==='contenido') renderContenido();
+  else if(p==='contenido') { renderContenido(); const _t=currentContTab||'videos'; if(_t==='videos') loadVideos(); else if(_t==='metricas') loadMetricas(); }
   else if(p==='propuestas') renderProposals();
   else if(p==='recursos') renderResources();
   else if(p==='focus') renderFocusSessions();

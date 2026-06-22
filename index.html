@@ -1016,6 +1016,11 @@ Decime qué querés lograr — no me cuentes el proceso, contame el objetivo. Yo
     <div id="page-settings" class="page">
       <div class="page-title">Configuración</div>
       <div class="card" style="margin-bottom:12px">
+        <div class="sec-label">Sesión</div>
+        <p style="font-size:13px;color:var(--txt2);margin-bottom:10px">Estás dentro de HQ con tu cuenta. Cerrar sesión te pedirá el login de nuevo en este dispositivo.</p>
+        <button class="btn btn-ghost btn-full" onclick="doLogout()">🔒 Cerrar sesión</button>
+      </div>
+      <div class="card" style="margin-bottom:12px">
         <div class="sec-label">Claude AI</div>
         <div class="field"><label>URL del proxy local (opcional)</label><input type="text" id="cfg-proxy" placeholder="http://localhost:3001/chat"></div>
         <p style="font-size:12px;color:var(--txt3);line-height:1.5;margin-bottom:10px">Si configurás un proxy local, el chat de MAX AI usará Claude en tiempo real. Sin proxy, generará prompts para copiar y abrir en claude.ai</p>
@@ -1691,8 +1696,23 @@ Puedo generarte copy listo para usar, ideas de reels, análisis de qué funciona
     </div>
   </div>
 
+  <!-- LOGIN GATE — pantalla de acceso real (Supabase Auth). Cubre todo hasta autenticarse. -->
+  <div id="login-gate" style="position:fixed;inset:0;z-index:99999;background:#0a0a14;display:flex;align-items:center;justify-content:center;padding:24px">
+    <div style="width:100%;max-width:380px;text-align:center">
+      <div style="font-size:40px;margin-bottom:14px">🔒</div>
+      <div style="font-size:22px;font-weight:800;letter-spacing:-.5px;color:#e8e8f2;margin-bottom:6px">Concepto HQ</div>
+      <div style="font-size:14px;color:#9898b0;margin-bottom:28px;line-height:1.5">Ingresá para acceder a tu oficina</div>
+      <input type="email" id="login-email" placeholder="Email" autocomplete="username" style="width:100%;padding:13px 16px;margin-bottom:12px;border-radius:12px;background:#15151f;border:1px solid #2a2a3a;color:#e8e8f2;font-size:15px;font-family:'Inter',system-ui;box-sizing:border-box">
+      <input type="password" id="login-pass" placeholder="Contraseña" autocomplete="current-password" style="width:100%;padding:13px 16px;margin-bottom:16px;border-radius:12px;background:#15151f;border:1px solid #2a2a3a;color:#e8e8f2;font-size:15px;font-family:'Inter',system-ui;box-sizing:border-box" onkeydown="if(event.key==='Enter')doLogin()">
+      <button id="login-btn" onclick="doLogin()" style="width:100%;padding:14px;border-radius:100px;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;border:none;font-size:15px;font-weight:700;cursor:pointer;font-family:'Inter',system-ui;box-shadow:0 6px 24px rgba(124,58,237,.28);letter-spacing:-.2px">Entrar</button>
+      <div id="login-error" style="color:#ff6b6b;font-size:13px;margin-top:14px;min-height:18px"></div>
+    </div>
+  </div>
+
 </div><!-- /app -->
 
+<!-- Supabase JS SDK — maneja login y sesión (refresh automático del token) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
 // ══════════════════════════════════════════════════
 // CONCEPTO HQ — JavaScript Engine
@@ -1702,6 +1722,21 @@ const OS_KEY = 'concepto-os-v3';
 const SB_URL = 'https://zngbeqbvmbxeweldmyaf.supabase.co';
 const SB_KEY = 'sb_publishable_nNQhjFQGR4n8FuSLCjOA0Q_2FsgmXUA';
 const SB_ROW = 'bruno';
+
+// ── SUPABASE AUTH (sesión real — cierra el acceso anónimo a hq_data y leads) ──
+const sbAuth = window.supabase.createClient(SB_URL, SB_KEY, {
+  auth: { persistSession: true, autoRefreshToken: true, storageKey: 'concepto-hq-session' }
+});
+let SB_SESSION = null;
+sbAuth.auth.onAuthStateChange((_event, session) => { SB_SESSION = session; });
+// Headers para las llamadas REST. Si hay sesión, manda el token del USUARIO (lo que el RLS
+// exige). Sin sesión manda solo la apikey → el RLS lo rechaza, que es justamente lo que queremos.
+function sbHeaders(extra = {}) {
+  const h = { 'apikey': SB_KEY, ...extra };
+  const token = SB_SESSION && SB_SESSION.access_token;
+  h['Authorization'] = 'Bearer ' + (token || SB_KEY);
+  return h;
+}
 
 let D = {
   timer:{running:false,startedAt:null,todaySeconds:0,lastDate:'',logs:[]},
@@ -1766,7 +1801,7 @@ async function syncToSupabase() {
   try {
     const r=await fetch(`${SB_URL}/rest/v1/hq_data`,{
       method:'POST',
-      headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Prefer':'resolution=merge-duplicates'},
+      headers:sbHeaders({'Content-Type':'application/json','Prefer':'resolution=merge-duplicates'}),
       body:JSON.stringify({id:SB_ROW,payload:D,updated_at:new Date().toISOString()})
     });
     setSyncStatus(r.ok?'ok':'error');
@@ -1775,7 +1810,7 @@ async function syncToSupabase() {
 async function loadFromSupabase() {
   try {
     const r=await fetch(`${SB_URL}/rest/v1/hq_data?id=eq.${SB_ROW}&select=payload`,{
-      headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`}
+      headers:sbHeaders()
     });
     const rows=await r.json();
     if(rows&&rows[0]&&rows[0].payload) {
@@ -2007,7 +2042,7 @@ async function loadLeads() {
   if (cnt) cnt.textContent = '';
   try {
     const r = await fetch(`${SB_URL}/rest/v1/leads?select=id,company_name,rubro,status,score,notes,created_at,place_id,phone,website,contacted_at,drafted_at&order=created_at.desc&limit=400`, {
-      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+      headers: sbHeaders()
     });
     if (!r.ok) { list.innerHTML = leadsMsg('No se pudo leer leads (Supabase '+r.status+'). ¿Ya corriste el SQL de permisos?'); return; }
     const rows = await r.json();
@@ -4507,7 +4542,42 @@ async function init() {
   if(serverOnline) loadBrief();
 }
 
-document.addEventListener('DOMContentLoaded', init);
+// ── LOGIN GATE (Supabase Auth) — exige sesión antes de cargar la app ──
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  const err = document.getElementById('login-error');
+  const btn = document.getElementById('login-btn');
+  if (!email || !pass) { err.textContent = 'Completá email y contraseña'; return; }
+  err.textContent = ''; btn.textContent = 'Entrando...'; btn.disabled = true;
+  const { data, error } = await sbAuth.auth.signInWithPassword({ email, password: pass });
+  btn.textContent = 'Entrar'; btn.disabled = false;
+  if (error) { err.textContent = 'Email o contraseña incorrectos'; return; }
+  SB_SESSION = data.session;
+  document.getElementById('login-pass').value = '';
+  document.getElementById('login-gate').style.display = 'none';
+  init();
+}
+async function doLogout() {
+  if (!confirm('¿Cerrar sesión en este dispositivo?')) return;
+  await sbAuth.auth.signOut();
+  SB_SESSION = null;
+  location.reload();
+}
+// Arranque: si ya hay sesión guardada, entra directo; si no, muestra el login.
+async function boot() {
+  try {
+    const { data } = await sbAuth.auth.getSession();
+    if (data && data.session) {
+      SB_SESSION = data.session;
+      document.getElementById('login-gate').style.display = 'none';
+      init();
+      return;
+    }
+  } catch (e) {}
+  document.getElementById('login-gate').style.display = 'flex';
+}
+document.addEventListener('DOMContentLoaded', boot);
 
 // ══════════════════════════════════════════════════
 // NEW: SERVER + AI ENGINE

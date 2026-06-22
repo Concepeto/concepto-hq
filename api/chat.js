@@ -1,4 +1,5 @@
 import { getSystemPrompt } from './_lib/prompts.js';
+import { isAuthed } from './_lib/auth.js';
 
 export const config = { runtime: 'edge' };
 
@@ -12,7 +13,6 @@ export default async function handler(req) {
   if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers: CORS });
 
   const API_KEY = process.env.ANTHROPIC_API_KEY;
-  const ADMIN_TOKEN = process.env.ADMIN_TOKEN;
 
   if (!API_KEY) {
     return new Response(JSON.stringify({ error: 'API key no configurada' }), {
@@ -20,13 +20,10 @@ export default async function handler(req) {
     });
   }
 
-  if (ADMIN_TOKEN) {
-    const auth = req.headers.get('authorization') || '';
-    if (auth !== `Bearer ${ADMIN_TOKEN}`) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401, headers: { 'Content-Type': 'application/json', ...CORS }
-      });
-    }
+  if (!(await isAuthed(req))) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401, headers: { 'Content-Type': 'application/json', ...CORS }
+    });
   }
 
   const { messages, role, data } = await req.json();

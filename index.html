@@ -4608,11 +4608,17 @@ function submitAuthToken() {
 }
 
 async function apiFetch(path, options = {}) {
-  const token = getAuthToken();
+  // Usa el token de tu sesión (login email+contraseña). El token viejo queda solo de respaldo.
+  const token = (SB_SESSION && SB_SESSION.access_token) || getAuthToken();
   const headers = { ...(options.headers || {}) };
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const r = await fetch(`${SERVER}${path}`, { ...options, headers });
-  if (r.status === 401) { showAuthModal(); return null; }
+  if (r.status === 401) {
+    // Sesión vencida o sin login → pedir el login (email+contraseña), nunca un token suelto.
+    const gate = document.getElementById('login-gate');
+    if (gate) gate.style.display = 'flex';
+    return null;
+  }
   return r;
 }
 

@@ -124,5 +124,7 @@ es solo para destrabarte si quedaste afuera. Después lo reintentamos con calma.
   el PIN de 4 a 6 dígitos.
 - **Dependencia nueva:** el login usa el SDK oficial de Supabase desde jsDelivr (CDN). Si ese
   CDN se cayera, el login no cargaría. Es el mismo CDN que ya usás para los videos.
-- **Dos accesos conviven:** el login nuevo (protege los datos) y el `ADMIN_TOKEN` viejo
-  (protege los endpoints de IA `/api/*`). Funcionan en paralelo. Unificarlos es mejora futura.
+- **Un solo login para todo (ya unificado):** el login de email+contraseña ahora también
+  destraba la IA (brief, ideas, chat). **El cartel del token viejo ya no te va a aparecer.**
+  El `ADMIN_TOKEN` sigue en el servidor solo como red de seguridad por si el login fallara —
+  vos no lo tocás más.

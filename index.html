@@ -2537,7 +2537,7 @@ async function renderCentroControl() {
   const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
   const COL={verde:'var(--green)',rojo:'var(--red)',amarillo:'var(--orange)',gris:'var(--txt3)'};
   try {
-    const r=await fetch(`${SB_URL}/rest/v1/estado_sistema?select=*&order=orden.asc`,{headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`}});
+    const r=await fetch(`${SB_URL}/rest/v1/estado_sistema?select=*&order=orden.asc`,{headers:sbHeaders()});
     const rows=await r.json();
     if(!Array.isArray(rows)||!rows.length){ grid.innerHTML='<div style="color:var(--txt2);font-size:12px">Sin datos del sistema todavía.</div>'; if(sum)sum.textContent=''; if(att)att.innerHTML=''; return; }
     const c={verde:0,rojo:0,amarillo:0,gris:0};
@@ -2558,7 +2558,7 @@ async function renderMaquina() {
   const fecha=t=>{ if(!t) return '—'; try{ return new Date(t).toLocaleString('es-UY',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); }catch(e){ return '—'; } };
   host.innerHTML='<div style="color:var(--txt3);font-size:12px">Cargando estado…</div>';
   try {
-    const r=await fetch(`${SB_URL}/rest/v1/estado_sistema?select=*&order=orden.asc`,{headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`}});
+    const r=await fetch(`${SB_URL}/rest/v1/estado_sistema?select=*&order=orden.asc`,{headers:sbHeaders()});
     const rows=await r.json();
     if(!Array.isArray(rows)||!rows.length){ host.innerHTML='<div style="color:var(--txt2);font-size:12px">Sin datos del sistema todavía. Los chequeos los escribe n8n.</div>'; return; }
     const c={verde:0,rojo:0,amarillo:0,gris:0}; rows.forEach(x=>{c[x.estado]=(c[x.estado]||0)+1;});
@@ -4988,12 +4988,11 @@ async function loadBrief() {
 // SISTEMA DE VIDEOS — bandeja de aprobación
 // ══════════════════════════════════════════
 const SB_VIDEOS_URL = SB_URL + '/rest/v1';
-const SB_VIDEOS_HEADERS = {
-  'apikey': SB_KEY,
-  'Authorization': 'Bearer ' + SB_KEY,
-  'Content-Type': 'application/json',
-  'Prefer': 'return=representation'
-};
+// Headers para videos/métricas: ahora viajan con el token de la SESIÓN (igual que hq_data),
+// no con la key anónima. Así nadie sin login puede aprobar/editar/leer estas tablas.
+function sbVideoHeaders() {
+  return sbHeaders({ 'Content-Type': 'application/json', 'Prefer': 'return=representation' });
+}
 
 let videosCurrentFilter = 'all';
 let videosCurrentCat = 'all';
@@ -5024,7 +5023,7 @@ async function loadVideos() {
   try {
     let url = SB_VIDEOS_URL + '/videos?order=created_at.desc&select=*';
     if (videosCurrentFilter !== 'all') url += '&status=eq.' + videosCurrentFilter;
-    const r = await fetch(url, { headers: SB_VIDEOS_HEADERS });
+    const r = await fetch(url, { headers: sbVideoHeaders() });
     videosData = await r.json();
     renderVideosGrid();
   } catch(e) {
@@ -5191,7 +5190,7 @@ async function sendCorrection(id) {
   if (!txt) return;
   await fetch(SB_VIDEOS_URL + '/videos?id=eq.' + id, {
     method: 'PATCH',
-    headers: SB_VIDEOS_HEADERS,
+    headers: sbVideoHeaders(),
     body: JSON.stringify({ notes: txt, status: 'pending_approval' })
   });
   notify('Corrección enviada');
@@ -5202,7 +5201,7 @@ async function sendCorrection(id) {
 async function updateVideoStatus(id, status) {
   await fetch(SB_VIDEOS_URL + '/videos?id=eq.' + id, {
     method: 'PATCH',
-    headers: SB_VIDEOS_HEADERS,
+    headers: sbVideoHeaders(),
     body: JSON.stringify({ status })
   });
 }
@@ -5278,9 +5277,9 @@ async function loadMetricas() {
 
   try {
     const [insights, organic, paid] = await Promise.all([
-      fetch(SB_VIDEOS_URL + '/learning_insights?order=generated_at.desc&select=*', { headers: SB_VIDEOS_HEADERS }).then(r => r.json()),
-      fetch(SB_VIDEOS_URL + '/video_metrics?platform=eq.instagram_organic&order=saves.desc&select=*,videos(name,mechanism,lever)', { headers: SB_VIDEOS_HEADERS }).then(r => r.json()),
-      fetch(SB_VIDEOS_URL + '/video_metrics?platform=eq.meta_ads&order=spend.desc&select=*', { headers: SB_VIDEOS_HEADERS }).then(r => r.json())
+      fetch(SB_VIDEOS_URL + '/learning_insights?order=generated_at.desc&select=*', { headers: sbVideoHeaders() }).then(r => r.json()),
+      fetch(SB_VIDEOS_URL + '/video_metrics?platform=eq.instagram_organic&order=saves.desc&select=*,videos(name,mechanism,lever)', { headers: sbVideoHeaders() }).then(r => r.json()),
+      fetch(SB_VIDEOS_URL + '/video_metrics?platform=eq.meta_ads&order=spend.desc&select=*', { headers: sbVideoHeaders() }).then(r => r.json())
     ]);
 
     // Cerebro insights

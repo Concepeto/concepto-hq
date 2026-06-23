@@ -1924,8 +1924,11 @@ const INFRA = [
    host:'WordPress + Elementor', hostA:'tierxhosting · correo @conceptodevelopment.com',
    rm:'Upsell: chatbot de turnos.'},
   {n:'ShockBag (HAL)', t:'Agente de IA', st:'prod', url:'',
-   host:'n8n + ManyChat', hostA:'brunoconcepto.app.n8n.cloud',
+   host:'n8n + ManyChat', hostA:'Elestio · n8nconcepto-u74817.vm.elestio.app',
    rm:'Mejorar lógica de derivación.'},
+  {n:'ShockBag · Follow-up automático', t:'Workflow de seguimiento de leads (n8n)', st:'prod', url:'',
+   host:'n8n workflow · ManyChat', hostA:'Elestio · workflow znopElZZmrUALCNF',
+   rm:'Monitorear primeras corridas reales. Regla 3–23h (ventana IG).'},
   {n:'Barraca Uno (star)', t:'App nueva (Astro) — el proyecto grande', st:'dev', url:'https://barraca-uno-star.vercel.app',
    gh:'conceptodevelopment-dev/barraca-uno-star', ghA:'GitHub empresa · usuario conceptodevelopment-dev',
    vc:'barraca-uno-star', vcA:'Vercel empresa · conceptodevelopment@gmail.com',
@@ -2047,6 +2050,7 @@ async function loadLeads() {
     if (!r.ok) { list.innerHTML = leadsMsg('No se pudo leer leads (Supabase '+r.status+'). ¿Ya corriste el SQL de permisos?'); return; }
     const rows = await r.json();
     LEADS_ALL = Array.isArray(rows) ? rows : [];
+    if (!RUBRO_DB) await loadRubroIdeas();   // ideas por rubro desde la fuente única (una sola vez)
     buildRubroFilter(LEADS_ALL);
     renderTop5();
     applyLeadFilter();
@@ -2149,9 +2153,69 @@ function leadScore(l){
   else if (reviews > 1000) s += 6;
   return s;
 }
+// ── Ideas de apertura por rubro ──────────────────────────────────────
+// FUENTE ÚNICA = tabla Supabase `rubro_ideas` (la leen HQ y el mail n8n [3]).
+// Para editar un mensaje: Supabase → Table Editor → rubro_ideas (NO tocar este código).
+// Lo de abajo es RED DE SEGURIDAD: solo se usa si la tabla no responde, así nada se rompe.
+// Las claves son los rubros EXACTOS que carga el motor de leads (n8n [1] CONFIG).
+const IDEAS_RUBRO = {
+  'inmobiliaria':    ['un sistema que le avisa solo a cada cliente cuando entra una propiedad que encaja con lo que busca', 'seguimiento automático a los que consultaron y no volvieron'],
+  'barraca':         ['un asistente que responde precio y stock al toque por WhatsApp, 24/7, y te pasa el cliente listo para cerrar', 'presupuestos armados solos desde tu lista de precios'],
+  'ferreteria':      ['un asistente que responde precio y disponibilidad al toque, 24/7', 'avisos de recompra a los clientes que compran seguido'],
+  'estudio contable':['recordatorios automáticos de vencimientos a cada cliente, sin que los persigas vos', 'un asistente que recibe la documentación y responde las consultas de siempre'],
+  'estudio juridico':['alertas automáticas de los plazos de cada expediente, para que no se te pase ninguno', 'un asistente que toma la primera consulta y agenda la reunión'],
+  'clinica':         ['agenda con recordatorios automáticos que bajan las inasistencias', 'un asistente que responde y agenda turnos 24/7 sin cargar a la recepción'],
+  'concesionaria':   ['seguimiento automático de cada interesado hasta que agenda el test drive', 'un asistente que responde modelos, precios y financiación al toque'],
+  'constructora':    ['seguimiento automático de cada presupuesto enviado, para que ninguno quede sin respuesta', 'reportes de avance de obra que se arman y se mandan solos'],
+  'muebleria':       ['un asistente que responde catálogo, precios y plazos de entrega 24/7', 'seguimiento automático de los presupuestos para cerrarlos'],
+  'distribuidora':   ['toma de pedidos automática por WhatsApp, sin ocupar a un vendedor', 'avisos de recompra a cada cliente según cada cuánto compra'],
+  'importadora':     ['un asistente que responde stock, precios y tiempos de entrega', 'avisos automáticos del estado de cada pedido al cliente'],
+  'agencia de viajes':['cotizaciones de paquetes respondidas al toque, 24/7', 'seguimiento automático de cada cotización hasta que el cliente decide'],
+  'hotel':           ['reservas directas 24/7 bilingües, para ahorrarte la comisión de las plataformas', 'respuesta automática a las consultas de los huéspedes antes y durante la estadía'],
+  'logistica':       ['avisos automáticos del estado de cada envío al cliente', 'cotización de fletes y toma de pedidos por WhatsApp'],
+  'metalurgica':     ['seguimiento automático de cada presupuesto, para que ninguno se enfríe', 'un asistente que toma las consultas técnicas y los pedidos'],
+};
+// Cómo nombrar al rubro en plural natural (lee mejor que "empresas del rubro hotel").
+const RUBRO_NOMBRE = {
+  'inmobiliaria':'inmobiliarias', 'barraca':'barracas', 'ferreteria':'ferreterías',
+  'estudio contable':'estudios contables', 'estudio juridico':'estudios jurídicos',
+  'clinica':'clínicas', 'concesionaria':'concesionarias', 'constructora':'constructoras',
+  'muebleria':'mueblerías', 'distribuidora':'distribuidoras', 'importadora':'importadoras',
+  'agencia de viajes':'agencias de viajes', 'hotel':'hoteles',
+  'logistica':'empresas de logística', 'metalurgica':'metalúrgicas',
+};
+// Genérico para cualquier rubro nuevo que el motor traiga y que no esté en el mapa.
+const IDEAS_GENERICAS = ['un asistente que responde las consultas al toque 24/7 por WhatsApp e Instagram', 'seguimiento automático de los que consultan y no terminan de cerrar'];
+// Overlay vivo desde la tabla `rubro_ideas`. null hasta que carga; si Supabase falla, queda null y se usa la red de seguridad de arriba.
+let RUBRO_DB = null;
+async function loadRubroIdeas(){
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/rubro_ideas?select=rubro,nombre,idea1,idea2`, { headers: sbHeaders() });
+    if (!r.ok) return;
+    const rows = await r.json();
+    if (!Array.isArray(rows) || !rows.length) return;
+    const db = {};
+    for (const x of rows) if (x && x.rubro) db[String(x.rubro).trim().toLowerCase()] = x;
+    RUBRO_DB = db;
+  } catch(e) { /* sin conexión → queda la red de seguridad */ }
+}
+function ideasFor(rubro){
+  const key = String(rubro||'').trim().toLowerCase();
+  if (RUBRO_DB && RUBRO_DB[key]) return [RUBRO_DB[key].idea1, RUBRO_DB[key].idea2];
+  if (IDEAS_RUBRO[key]) return IDEAS_RUBRO[key];
+  if (RUBRO_DB && RUBRO_DB['_generico']) return [RUBRO_DB['_generico'].idea1, RUBRO_DB['_generico'].idea2];
+  return IDEAS_GENERICAS;
+}
+function nombreRubro(rubro){
+  const key = String(rubro||'').trim().toLowerCase();
+  if (RUBRO_DB && RUBRO_DB[key]) return RUBRO_DB[key].nombre;
+  if (RUBRO_NOMBRE[key]) return RUBRO_NOMBRE[key];
+  if (RUBRO_DB && RUBRO_DB['_generico']) return RUBRO_DB['_generico'].nombre;
+  return 'empresas como la tuya';
+}
 function guionFor(l){
-  const rubroTxt = l.rubro || 'tu rubro';
-  return `Hola, ¿cómo andan? Los encontré en Google y vi que tienen buena reputación. Trabajo con empresas del rubro ${rubroTxt} en Uruguay ayudándolas a no perder clientes por no responder a tiempo: un asistente que atiende las consultas al toque, 24/7. ¿Les muestro en 2 minutos cómo quedaría para ${l.company_name}?`;
+  const [idea1, idea2] = ideasFor(l.rubro);
+  return `Hola, ¿cómo andan? Soy Bruno, de Concepto Development. Armamos sistemas de automatización a medida para ${nombreRubro(l.rubro)} en Uruguay — por ejemplo, ${idea1}, o ${idea2}. ¿Les muestro en 2 minutos cómo lo dejaríamos para ${l.company_name}?`;
 }
 function computeTop5(){
   // Condicion del Top 5: SOLO leads con WhatsApp (celular). Son los prioritarios.

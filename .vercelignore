@@ -3,3 +3,10 @@ data/server.log
 SEGURIDAD-RLS.sql
 RUNBOOK-SEGURIDAD.md
 scripts/
+.env
+.env.*
+.git
+.DS_Store
+.vercelignore 2
+rubro-ideas.sql
+rediseno-5am/

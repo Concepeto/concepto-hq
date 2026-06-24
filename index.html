@@ -682,7 +682,7 @@ Decime qué querés lograr — no me cuentes el proceso, contame el objetivo. Yo
           <div class="chip" onclick="filterVideos('rejected',this)">❌ Rechazados</div>
           <div class="chip active" onclick="filterVideos('all',this)">Todos</div>
         </div>
-        <div id="videos-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px"></div>
+        <div id="videos-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:12px"></div>
         <div id="videos-empty" style="display:none;text-align:center;padding:32px 0;color:var(--txt3);font-size:13px">No hay videos en esta categoría</div>
       </div>
       <!-- ══ METRICAS TAB ══ -->
@@ -5157,26 +5157,26 @@ function videoCard(v) {
            </div>`
         : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--txt3);font-size:11px">Sin video</div>`
       }
-      <div style="position:absolute;top:6px;left:6px;background:rgba(0,0,0,.75);border-radius:4px;padding:2px 7px;font-size:10px;font-family:'DM Mono',monospace;color:${statusColor}">${statusLabel}</div>
-      <div style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.75);border-radius:4px;padding:2px 7px;font-size:10px;font-family:'DM Mono',monospace;color:var(--txt2)">${VIDEO_CAT_LABEL[cat]||''}</div>
+      <div style="position:absolute;top:6px;left:6px;background:rgba(0,0,0,.78);border-radius:5px;padding:3px 8px;font-size:11px;font-family:'DM Mono',monospace;color:${statusColor}">${statusLabel}</div>
+      <div style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.78);border-radius:5px;padding:3px 8px;font-size:11px;font-family:'DM Mono',monospace;color:var(--txt2)">${VIDEO_CAT_LABEL[cat]||''}</div>
     </div>
-    <div style="font-size:12px;font-weight:700;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${v.name}</div>
-    <div style="font-size:10px;color:var(--txt3);font-family:'DM Mono',monospace;margin-bottom:8px">${v.mechanism||''} · ${v.lever||''}</div>
+    <div style="font-size:14px;font-weight:700;line-height:1.25;margin-bottom:3px">${v.name}</div>
+    <div style="font-size:11.5px;color:var(--txt3);font-family:'DM Mono',monospace;margin-bottom:10px">${v.mechanism||''} · ${v.lever||''}</div>
     ${v.storage_url ? `
     <button onclick="event.stopPropagation();shareVideo('${safeUrl}','${safeName}')"
-       style="display:flex;align-items:center;justify-content:center;gap:4px;width:100%;font-size:11px;padding:5px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--txt2);cursor:pointer;margin-bottom:6px">⬇ Descargar / Compartir</button>` : ''}
+       style="display:flex;align-items:center;justify-content:center;gap:4px;width:100%;font-size:13px;min-height:42px;padding:8px;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;color:var(--txt2);cursor:pointer;margin-bottom:8px">⬇ Descargar / Compartir</button>` : ''}
     <div id="va-${v.id}">
     ${v.status !== 'posted' ? `
-    <div style="display:flex;gap:6px;margin-bottom:6px">
-      <button class="btn btn-sm" style="flex:1;background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.3);color:#4ade80;font-size:11px;padding:5px 0"
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <button class="btn btn-sm" style="flex:1;background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.3);color:#4ade80;font-size:13px;font-weight:700;min-height:44px"
         onclick="openCaptionEditor('${v.id}')">✅ Aprobar</button>
-      <button class="btn btn-sm btn-ghost" style="flex:1;font-size:11px;padding:5px 0;color:var(--red);border-color:rgba(239,68,68,.3)"
+      <button class="btn btn-sm btn-ghost" style="flex:1;font-size:13px;font-weight:700;min-height:44px;color:var(--red);border-color:rgba(239,68,68,.3)"
         onclick="rejectVideo('${v.id}')">✕ No</button>
     </div>
-    <div style="display:flex;gap:6px">
-      <input type="text" id="correction-${v.id}" placeholder="Corrección..." style="flex:1;font-size:11px;padding:5px 8px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--txt1)">
-      <button class="btn btn-sm btn-ghost" style="font-size:11px;padding:5px 8px" onclick="sendCorrection('${v.id}')">→</button>
-    </div>` : `<div style="font-size:11px;color:var(--txt3);text-align:center;padding:4px 0">Publicado en Instagram ✓</div>`}
+    <div style="display:flex;gap:8px">
+      <input type="text" id="correction-${v.id}" placeholder="Corrección..." style="flex:1;min-width:0;font-size:13px;min-height:44px;padding:8px 12px;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;color:var(--txt1)">
+      <button class="btn btn-sm btn-ghost" style="font-size:15px;min-width:44px;min-height:44px;padding:8px" onclick="sendCorrection('${v.id}')">→</button>
+    </div>` : `<div style="font-size:12px;color:var(--txt3);text-align:center;padding:6px 0">Publicado en Instagram ✓</div>`}
     </div>
   </div>`;
 }
@@ -5318,12 +5318,36 @@ function openVideoFullscreen(url, name, statusLabel) {
         <button onclick="closeVideoFullscreen()" style="width:36px;height:36px;background:rgba(255,255,255,.12);border:none;border-radius:8px;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
       </div>
     </div>
-    <video src="${url}" controls autoplay playsinline
-           style="max-height:calc(100dvh - 110px);max-width:420px;width:100%;border-radius:12px;background:#000;display:block"></video>
+    <div style="position:relative;width:100%;max-width:420px;display:flex;justify-content:center">
+      <video id="video-fs-player" src="${url}" controls playsinline
+             style="max-height:calc(100dvh - 120px);max-width:420px;width:100%;border-radius:12px;background:#000;display:block"></video>
+      <button id="video-fs-unmute" onclick="unmuteFsVideo()"
+        style="display:none;position:absolute;bottom:16px;left:50%;transform:translateX(-50%);background:rgba(124,58,237,.95);border:none;border-radius:100px;color:#fff;font-size:15px;font-weight:700;padding:12px 22px;cursor:pointer;box-shadow:0 6px 24px rgba(124,58,237,.4);min-height:44px">🔊 Activar sonido</button>
+    </div>
   `;
   overlay.addEventListener('click', e => { if (e.target === overlay) closeVideoFullscreen(); });
   document.body.appendChild(overlay);
   document.body.style.overflow = 'hidden';
+
+  // Arrancar CON sonido (el tap que abrió esto es un gesto válido del usuario).
+  // Si el navegador móvil igual lo bloquea, caer a mudo + botón grande para activar sonido.
+  const vid = document.getElementById('video-fs-player');
+  const unmuteBtn = document.getElementById('video-fs-unmute');
+  if (vid) {
+    vid.muted = false;
+    vid.play().catch(() => {
+      vid.muted = true;
+      vid.play().catch(() => {});
+      if (unmuteBtn) unmuteBtn.style.display = 'block';
+    });
+  }
+}
+
+function unmuteFsVideo() {
+  const vid = document.getElementById('video-fs-player');
+  const btn = document.getElementById('video-fs-unmute');
+  if (vid) { vid.muted = false; vid.play().catch(() => {}); }
+  if (btn) btn.style.display = 'none';
 }
 
 function closeVideoFullscreen() {

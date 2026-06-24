@@ -278,7 +278,49 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
     <!-- ═══════════════ COMANDO ═══════════════ -->
     <div id="page-comando" class="page active">
 
-      <!-- 5 KPI Cards — scroll horizontal -->
+      <!-- ① HOY: reuniones + seguimientos del día — aparece SOLO si hay algo (si no, oculta) -->
+      <div class="card" id="hoy-focus-card" style="margin-bottom:12px;border-color:rgba(34,211,238,.18)">
+        <div class="sec-label">🗓 Hoy</div>
+        <div id="hoy-reuniones"></div>
+        <div id="hoy-followups"></div>
+        <div id="hoy-empty" style="display:none;font-size:14px;color:var(--txt3);padding:6px 2px">Sin reuniones ni seguimientos para hoy.</div>
+      </div>
+
+      <!-- ② Centro de Control -->
+      <div class="card" id="cc-card" style="margin-bottom:12px;cursor:pointer" onclick="setPage('infra')">
+        <div class="sec-label" style="display:flex;justify-content:space-between;align-items:center">
+          <span>Centro de Control →</span>
+          <span id="cc-summary" style="font-size:11px;color:var(--txt2);font-weight:400"></span>
+        </div>
+        <div id="cc-attention" style="display:flex;flex-direction:column;gap:6px;margin:6px 0"></div>
+        <div id="cc-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px"></div>
+      </div>
+
+      <!-- ③ Alertas + Brief del día -->
+      <div id="alerts-section"></div>
+
+      <div id="morning-brief" class="card" style="border-color:rgba(124,58,237,.2);background:linear-gradient(135deg,rgba(124,58,237,.06),rgba(168,85,247,.02));margin-bottom:12px">
+        <div class="sec-label">Brief del día</div>
+        <div id="brief-content" style="font-size:15px;line-height:1.85;color:var(--txt2)">Cargando...</div>
+      </div>
+
+      <!-- ④ Agenda de hoy -->
+      <div class="sec-label">Agenda de hoy</div>
+      <div id="today-list">
+        <div class="empty"><div class="empty-icon">📅</div>Sin tareas para hoy</div>
+      </div>
+
+      <!-- ⑤ Acciones rápidas: Tarea / Prospecto / Propuesta / Ingreso -->
+      <div class="qa-grid" style="margin-bottom:12px;margin-top:12px">
+        <div class="qa-btn" onclick="quickAction('task')"><div class="qa-icon">✅</div><div class="qa-label">Tarea</div></div>
+        <div class="qa-btn" onclick="quickAction('prospect')"><div class="qa-icon">🎯</div><div class="qa-label">Prospecto</div></div>
+        <div class="qa-btn" onclick="quickAction('ai-proposal')"><div class="qa-icon">🤖</div><div class="qa-label">Propuesta</div></div>
+        <div class="qa-btn" onclick="quickAction('income')"><div class="qa-icon">💰</div><div class="qa-label">Ingreso</div></div>
+      </div>
+
+      <!-- ══════ GENERAL (baja al fondo: ya no es lo primero del día) ══════ -->
+
+      <!-- KPI Cards — scroll horizontal -->
       <div class="dash-kpis">
         <div class="dash-kpi" onclick="setPage('finance')">
           <div class="dash-kpi-top">
@@ -314,24 +356,6 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
         </div>
       </div>
 
-      <!-- HOY: reuniones + seguimientos del día (lo primero que importa) -->
-      <div class="card" id="hoy-focus-card" style="margin-bottom:12px;border-color:rgba(34,211,238,.18)">
-        <div class="sec-label">🗓 Hoy</div>
-        <div id="hoy-reuniones"></div>
-        <div id="hoy-followups"></div>
-        <div id="hoy-empty" style="display:none;font-size:14px;color:var(--txt3);padding:6px 2px">Sin reuniones ni seguimientos para hoy.</div>
-      </div>
-
-      <!-- Centro de Control -->
-      <div class="card" id="cc-card" style="margin-bottom:12px;cursor:pointer" onclick="setPage('infra')">
-        <div class="sec-label" style="display:flex;justify-content:space-between;align-items:center">
-          <span>Centro de Control →</span>
-          <span id="cc-summary" style="font-size:11px;color:var(--txt2);font-weight:400"></span>
-        </div>
-        <div id="cc-attention" style="display:flex;flex-direction:column;gap:6px;margin:6px 0"></div>
-        <div id="cc-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px"></div>
-      </div>
-
       <!-- Objetivos del mes -->
       <div class="card" style="margin-bottom:12px">
         <div class="sec-label">Objetivos del mes</div>
@@ -363,29 +387,6 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
       <div class="card" style="margin-bottom:12px">
         <div class="sec-label">Top clientes</div>
         <div id="dash-top-clients"><div style="font-size:12px;color:var(--txt3)">Sin clientes activos</div></div>
-      </div>
-
-      <!-- Acciones rápidas (4) -->
-      <div class="qa-grid" style="margin-bottom:12px">
-        <div class="qa-btn" onclick="quickAction('task')"><div class="qa-icon">✅</div><div class="qa-label">Tarea</div></div>
-        <div class="qa-btn" onclick="quickAction('prospect')"><div class="qa-icon">🎯</div><div class="qa-label">Prospecto</div></div>
-        <div class="qa-btn" onclick="quickAction('ai-proposal')"><div class="qa-icon">🤖</div><div class="qa-label">Propuesta</div></div>
-        <div class="qa-btn" onclick="quickAction('income')"><div class="qa-icon">💰</div><div class="qa-label">Ingreso</div></div>
-      </div>
-
-      <!-- Alerts -->
-      <div id="alerts-section"></div>
-
-      <!-- Brief del día -->
-      <div id="morning-brief" class="card" style="border-color:rgba(124,58,237,.2);background:linear-gradient(135deg,rgba(124,58,237,.06),rgba(168,85,247,.02));margin-bottom:12px">
-        <div class="sec-label">Brief del día</div>
-        <div id="brief-content" style="font-size:15px;line-height:1.85;color:var(--txt2)">Cargando...</div>
-      </div>
-
-      <!-- Agenda de hoy -->
-      <div class="sec-label">Agenda de hoy</div>
-      <div id="today-list">
-        <div class="empty"><div class="empty-icon">📅</div>Sin tareas para hoy</div>
       </div>
 
       <!-- Follow-up radar -->
@@ -2484,7 +2485,9 @@ function renderHoyFocus(){
         <span style="font-size:11px;color:${overdue?'var(--red)':'var(--orange)'};font-family:'DM Mono',monospace;font-weight:700">${overdue?'vencido':'hoy'}</span>
       </div>`;
     }).join('') : '';
-  eEl.style.display = (reuns.length||fups.length) ? 'none' : 'block';
+  const hayAlgo = reuns.length || fups.length;
+  eEl.style.display = 'none';
+  card.style.display = hayAlgo ? 'block' : 'none';   // sin reuniones ni seguimientos → oculta toda la tarjeta
 }
 
 // ── COMANDO RENDER ────────────────────────────────

@@ -694,11 +694,11 @@ Decime qué querés lograr — no me cuentes el proceso, contame el objetivo. Yo
           <div class="chip" onclick="filterVideosCat('sistema',this)">🧪 Sistema / Demos</div>
         </div>
         <div id="videos-filter" style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
-          <div class="chip" onclick="filterVideos('pending_approval',this)">⏳ Para decidir</div>
+          <div class="chip active" onclick="filterVideos('pending_approval',this)">⏳ Para decidir</div>
           <div class="chip" onclick="filterVideos('approved',this)">✅ Aprobados</div>
           <div class="chip" onclick="filterVideos('posted',this)">📤 Publicados</div>
           <div class="chip" onclick="filterVideos('rejected',this)">❌ Rechazados</div>
-          <div class="chip active" onclick="filterVideos('all',this)">Todos</div>
+          <div class="chip" onclick="filterVideos('all',this)">Todos</div>
         </div>
         <div id="videos-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:12px"></div>
         <div id="videos-empty" style="display:none;text-align:center;padding:32px 0;color:var(--txt3);font-size:13px">No hay videos en esta categoría</div>
@@ -5080,7 +5080,7 @@ const SB_VIDEOS_HEADERS = {
   'Prefer': 'return=representation'
 };
 
-let videosCurrentFilter = 'all';
+let videosCurrentFilter = 'pending_approval';   // arranca en "Para decidir" (no mezcla aprobados/rechazados)
 let videosCurrentCat = 'all';
 let videosData = [];
 
@@ -5109,6 +5109,8 @@ async function loadVideos() {
   try {
     let url = SB_VIDEOS_URL + '/videos?order=created_at.desc&select=*';
     if (videosCurrentFilter !== 'all') url += '&status=eq.' + videosCurrentFilter;
+    const desde = new Date(Date.now() - 7 * 864e5).toISOString();   // solo última semana
+    url += '&created_at=gte.' + desde;
     const r = await fetch(url, { headers: SB_VIDEOS_HEADERS });
     videosData = await r.json();
     renderVideosGrid();
@@ -5179,7 +5181,7 @@ function videoCard(v) {
     ${v.status !== 'posted' ? `
     <div style="display:flex;gap:8px;margin-bottom:8px">
       <button class="vbtn vbtn-approve" style="flex:1" onclick="openCaptionEditor('${v.id}')">✅ Aprobar</button>
-      <button class="vbtn vbtn-reject" style="flex:1" onclick="rejectVideo('${v.id}')">✕ No</button>
+      <button class="vbtn vbtn-reject" style="flex:1" onclick="rejectVideoAsk('${v.id}')">✕ No</button>
     </div>
     <div style="display:flex;gap:8px">
       <input type="text" id="correction-${v.id}" class="vcorr" placeholder="Corrección...">
@@ -5260,9 +5262,26 @@ async function approveVideo(id, caption, shareToFeed) {
   loadVideos();
 }
 
-async function rejectVideo(id) {
-  await updateVideoStatus(id, 'rejected');
-  notify('Video rechazado');
+// Al tocar "✕ No", pedimos el motivo en un toque — eso es lo que el robot usa para aprender tu gusto.
+function rejectVideoAsk(id) {
+  const host = document.getElementById('va-' + id);
+  if (!host) return rejectVideo(id, '');
+  const reasons = ['Ángulo', 'Texto', 'Visual', 'Ritmo', 'No me sirve'];
+  host.innerHTML = `
+    <div style="font-size:12px;color:var(--txt3);margin-bottom:6px;text-align:center">¿Por qué no? (le enseña al robot)</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center">
+      ${reasons.map(r => `<button class="vbtn" style="font-size:12px;min-height:38px;padding:6px 10px;flex:0 0 auto" onclick="rejectVideo('${id}','${r}')">${r}</button>`).join('')}
+      <button class="vbtn" style="font-size:12px;min-height:38px;padding:6px 10px;flex:0 0 auto;color:var(--txt3)" onclick="loadVideos()">Cancelar</button>
+    </div>`;
+}
+
+async function rejectVideo(id, reason) {
+  await fetch(SB_VIDEOS_URL + '/videos?id=eq.' + id, {
+    method: 'PATCH',
+    headers: SB_VIDEOS_HEADERS,
+    body: JSON.stringify({ status: 'rejected', notes: reason ? ('rechazo: ' + reason) : 'rechazado' })
+  });
+  notify(reason ? ('Rechazado · ' + reason) : 'Video rechazado');
   loadVideos();
 }
 
@@ -5426,11 +5445,29 @@ async function loadMetricas() {
         </div>`).join('');
     }
 
-    // Pauta
+    // Recomendación de pauta DORMIDA: solo sugiere si un video orgánico despega de verdad
+    // (≥2.5× el reach promedio y ≥50 reach). Nunca crea anuncios: vos decidís y aprobás.
+    let recoHtml = '';
+    if (organic && organic.length >= 3) {
+      const avgReach = organic.reduce((s, m) => s + (m.reach || 0), 0) / organic.length;
+      const cands = organic
+        .filter(m => (m.reach || 0) >= Math.max(50, avgReach * 2.5))
+        .sort((a, b) => (b.reach || 0) - (a.reach || 0))
+        .slice(0, 2);
+      if (cands.length) {
+        recoHtml = `<div style="background:rgba(124,58,237,.10);border:1px solid rgba(124,58,237,.28);border-radius:10px;padding:14px;margin-bottom:10px">
+          <div style="font-size:13px;font-weight:800;margin-bottom:8px">📈 Vale la pena promocionar</div>
+          ${cands.map(m => `<div style="font-size:13px;margin-bottom:4px"><b>${m.videos?.name || '—'}</b> — rinde ${((m.reach || 0) / Math.max(1, avgReach)).toFixed(1)}× el promedio (${m.reach} reach)</div>`).join('')}
+          <div style="font-size:11px;color:var(--txt3);margin-top:6px">Recomendación — vos decidís la pauta y el presupuesto. El sistema nunca gasta solo.</div>
+        </div>`;
+      }
+    }
+
+    // Pauta (anuncios ya corriendo)
     if (!paid || paid.length === 0) {
-      pautaEl.innerHTML = '<div style="color:var(--txt3);font-size:13px;text-align:center;padding:16px">Sin datos de pauta todavía</div>';
+      pautaEl.innerHTML = recoHtml || '<div style="color:var(--txt3);font-size:13px;text-align:center;padding:16px">Sin datos de pauta todavía</div>';
     } else {
-      pautaEl.innerHTML = paid.map(m => `
+      pautaEl.innerHTML = recoHtml + paid.map(m => `
         <div style="padding:10px 12px;background:var(--bg2);border-radius:8px">
           <div style="font-size:12px;font-weight:700;margin-bottom:6px">${m.ad_name||m.ad_id}</div>
           <div style="display:flex;gap:12px;font-size:11px;font-family:'DM Mono',monospace;flex-wrap:wrap">

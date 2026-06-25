@@ -2630,7 +2630,7 @@ async function renderCentroControl() {
     if(sum) sum.textContent=`${c.verde} OK · ${c.rojo} caídos · ${c.amarillo} alerta`;
     const aten=rows.filter(x=>x.estado==='rojo'||x.estado==='amarillo');
     if(att) att.innerHTML=aten.map(x=>`<div style="display:flex;align-items:center;gap:8px;background:#15151f;border-left:3px solid ${COL[x.estado]};border-radius:8px;padding:8px 10px"><span style="font-size:13px;color:var(--txt1)">${esc(x.nombre)}</span><span style="font-size:11px;color:var(--txt2);margin-left:auto">${esc(x.mensaje||'')}</span></div>`).join('');
-    grid.innerHTML=rows.map(x=>`<div style="display:flex;align-items:center;gap:8px;background:#15151f;border:1px solid #26263a;border-radius:8px;padding:8px 10px"><span style="width:9px;height:9px;border-radius:50%;background:${COL[x.estado]||'var(--txt3)'};flex-shrink:0"></span><span style="font-size:13px;color:var(--txt1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(x.nombre)}</span></div>`).join('');
+    grid.innerHTML=rows.filter(x=>x.estado!=='gris').map(x=>`<div style="display:flex;align-items:center;gap:8px;background:#15151f;border:1px solid #26263a;border-radius:8px;padding:8px 10px"><span style="width:9px;height:9px;border-radius:50%;background:${COL[x.estado]||'var(--txt3)'};flex-shrink:0"></span><span style="font-size:13px;color:var(--txt1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(x.nombre)}</span></div>`).join('');
   } catch(e){ grid.innerHTML='<div style="color:var(--txt2);font-size:12px">No se pudo leer el estado del sistema.</div>'; }
 }
 setInterval(()=>{ if(currentPage==='comando') renderCentroControl(); }, 60000);
